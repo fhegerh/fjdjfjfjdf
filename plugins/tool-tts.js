@@ -1,4 +1,4 @@
-const converter = require('../data/converter');
+const converter = require('../lib/converter');
 const axios = require('axios');
 const { cmd } = require('../command');
 const googleTTS = require('google-tts-api');
