@@ -1,7 +1,7 @@
 const config = require('../config');
 const { cmd } = require('../command');
 const axios = require('axios');
-const converter = require('../data/converter');
+const converter = require('../lib/converter');
 
 // --- SHARED VOICE CLIPS LIST ---
 const voiceClips = [
