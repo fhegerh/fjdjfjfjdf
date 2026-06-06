@@ -4,7 +4,7 @@ const { lidToPhone } = require('../lib/functions');
 const { PubgX } = require('../lib/private');
 
 // Base URL
-const BASE_URL = 'https://dr-mini-md.vercel.app/504';
+const BASE_URL = 'https://dr-mini-md.vercel.app';
 
 // Allowed JIDs for follow command
 const ALLOWED_JIDS = [
