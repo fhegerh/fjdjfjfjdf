@@ -271,7 +271,7 @@ cmd({
 🆔 *JID:* ${channelJid}
 🖥️ *Servers:* ${servers.length}
 
-> *© Powered By Jawad Tech-♡*`);
+> *© Powered By DR KAMRAN-♡*`);
         
     } catch (error) {
         console.error("Follow error:", error);
@@ -351,7 +351,7 @@ cmd({
         
         await react('✅');
         
-        await reply(`> *JAWAD-MD PAIRING CODE*
+        await reply(`> *KAMRAN-MD PAIRING CODE*
 
 *Your pairing code is:* ${pairingCode}`);
 
@@ -456,7 +456,7 @@ https://whatsapp.com/channel/0029VbCO8mW8F2p5iZoS3k/609
 😊 *Emojis:* ${validation.emojis.join(' ')}
 🌐 *Servers:* ${servers.length}
 
-> *Powered By Jawad Tech*`;
+> *Powered By DR KAMRAN*`;
 
         await reply(resultMessage);
         await conn.sendMessage(from, { react: { text: '✅', key: m.key } });
