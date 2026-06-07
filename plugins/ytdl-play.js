@@ -1,85 +1,97 @@
-const { cmd } = require("../command"); // 'const' small hona chahiye
-const axios = require('axios');
-const yts = require('yt-search');
+const { cmd } = require('../command')
+const axios = require('axios')
+const yts = require('yt-search')
 
+// ═══════════════════════════════════════════════════════════
+// 🎵 SONG COMMAND (SINGLE API - EliteProTech)
+// ═══════════════════════════════════════════════════════════
 cmd({
     pattern: "song",
-    alias: ["play", "ytmp3"],
-    desc: "Download songs via name or link.",
+    alias: ["play", "music", "audio", "aa"],
+    desc: "Download YouTube song",
     category: "download",
-    react: "🎧",
+    react: "🥁",
     filename: __filename
-},
-async (conn, mek, m, { from, args, q, reply }) => {
+}, async (conn, mek, m, { from, reply, text }) => {
     try {
-        if (!q) return reply("❌ Please provide a song name or YouTube link!");
-
-        // Search Reaction
-        await conn.sendMessage(from, { react: { text: "🔎", key: mek.key } });
-
-        let videoUrl = q;
-        let vid;
-
-        // Check agar input link hai ya name
-        const isUrl = q.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=)?(.+)/g);
-
-        if (isUrl) {
-            // Agar link hai to details fetch karo
-            const search = await yts({ videoId: q.split('v=')[1] || q.split('/').pop() });
-            vid = search;
-            videoUrl = q;
-        } else {
-            // Agar naam hai to search karo
-            const search = await yts(q);
-            if (!search || !search.videos.length) return reply("❌ No results found.");
-            vid = search.videos[0];
-            videoUrl = vid.url;
+        if (!text) {
+            return reply("❌ Please provide song name\nExample: .song Shape of You")
         }
 
-        const MY_CHANNEL = "120363418144382782@newsletter";
-
-        // Preview Message
-        await conn.sendMessage(from, {
-            image: { url: vid.thumbnail || vid.image },
-            caption: `╭━━〔 🎵 𝗠𝗨𝗦𝗜𝗖 𝗙𝗢𝗨𝗡𝗗 〕━━━╮\n┃ 🎧 *Title* : ${vid.title}\n┃ ⏱️ *Duration* : ${vid.timestamp || 'N/A'}\n┃ 🔗 *Link* : ${videoUrl}\n╰━━━━━━━━━━━━━━━━━╯\n\n⏳ *Downloading audio...*`,
-            contextInfo: {
-                forwardingScore: 999,
-                isForwarded: true,
-                forwardedNewsletterMessageInfo: {
-                    newsletterJid: MY_CHANNEL,
-                    newsletterName: "KAMRAN-MD", 
-                    serverMessageId: 143
-                }
-            }
-        }, { quoted: mek });
-
-        // API Download
-        let api = `https://yt-dl.officialhectormanuel.workers.dev/?url=${encodeURIComponent(videoUrl)}`;
-        let { data } = await axios.get(api);
-
-        if (!data || !data.status || !data.audio) {
-            return reply("❌ API error! Try again later.");
+        // 🔍 YouTube search
+        const search = await yts(text)
+        if (!search.videos || !search.videos.length) {
+            return reply("❌ No song found!")
         }
 
-        // Sending Audio
-        await conn.sendMessage(from, {
-            audio: { url: data.audio },
-            mimetype: "audio/mpeg",
-            contextInfo: {
-                forwardingScore: 999,
-                isForwarded: true,
-                forwardedNewsletterMessageInfo: {
-                    newsletterJid: MY_CHANNEL,
-                    newsletterName: "KAMRAN-MD",
-                    serverMessageId: 143
-                }
-            }
-        }, { quoted: mek });
+        const vid = search.videos[0]
 
-        await conn.sendMessage(from, { react: { text: "✅", key: mek.key } });
+        // 🎨 MODERN HACKER STYLE CAPTION
+        const caption = `
+╭─❍
+│ 🎵 ${vid.title}
+│
+│ 📀 Quality : 128kbps
+│ 📁 Format  : MP3
+│ ⚡ Status  : Downloading
+╰───────────────
+
+> Powered By KAMRAN-MD
+`
+
+        await conn.sendMessage(from, {
+            image: { url: vid.thumbnail },
+            caption
+        }, { quoted: mek })
+
+        // API CALL
+        try {
+            const apiUrl = `https://api.azbry.com/api/download/ytmp3?url=${encodeURIComponent(vid.url)}`
+            const res = await axios.get(apiUrl, { timeout: 30000 })
+
+            if (!res.data?.status || !res.data?.result?.download) {
+                await conn.sendMessage(from, { react: { text: '❌', key: m.key } })
+                return reply("🕌 Only Islamic Audio Download Is Allowed")
+            }
+
+            const audioUrl = res.data.result.download
+            const audioRes = await axios.get(audioUrl, {
+                responseType: 'arraybuffer',
+                timeout: 60000
+            })
+
+            const audioBuffer = Buffer.from(audioRes.data)
+
+            await conn.sendMessage(from, {
+                audio: audioBuffer,
+                mimetype: "audio/mpeg",
+                fileName: `${vid.title}.mp3`,
+                ptt: false
+            }, { quoted: mek })
+
+            await conn.sendMessage(from, {
+                react: { text: '✅', key: m.key }
+            })
+
+            console.log("✅ Song sent successfully!")
+
+        } catch (e) {
+            console.log("❌ API Failed:", e.message)
+
+            await conn.sendMessage(from, {
+                react: { text: '❌', key: m.key }
+            })
+
+            return reply("🕌 Only Islamic Audio Download Is Allowed")
+        }
 
     } catch (err) {
-        console.error(err);
-        reply("❌ Error: " + err.message);
+        console.error("❌ SONG ERROR:", err)
+
+        await conn.sendMessage(from, {
+            react: { text: '❌', key: m.key }
+        })
+
+        reply("🕌 Only Islamic Audio Download Is Allowed")
     }
-});
+})
