@@ -6,389 +6,179 @@ const fs = require('fs');
 const {runtime} = require('../lib/functions')
 const axios = require('axios')
 
+// Helper function for small caps text
+const toSmallCaps = (text) => {
+    if (!text || typeof text !== 'string') return '';
+    const smallCapsMap = {
+        'a': 'ᴀ', 'b': 'ʙ', 'c': 'ᴄ', 'd': 'ᴅ', 'e': 'ᴇ', 'f': 'ғ', 'g': 'ɢ', 'h': 'ʜ', 'i': 'ɪ',
+        'j': 'ᴊ', 'k': 'ᴋ', 'l': 'ʟ', 'm': 'ᴍ', 'n': 'ɴ', 'o': 'ᴏ', 'p': 'ᴘ', 'q': 'ǫ', 'r': 'ʀ',
+        's': 's', 't': 'ᴛ', 'u': 'ᴜ', 'v': 'ᴠ', 'w': 'ᴡ', 'x': 'x', 'y': 'ʏ', 'z': 'ᴢ',
+        'A': 'ᴀ', 'B': 'ʙ', 'C': 'ᴄ', 'D': 'ᴅ', 'E': 'ᴇ', 'F': 'ғ', 'G': 'ɢ', 'H': 'ʜ', 'I': 'ɪ',
+        'J': 'ᴊ', 'K': 'ᴋ', 'L': 'ʟ', 'M': 'ᴍ', 'N': 'ɴ', 'O': 'ᴏ', 'P': 'ᴘ', 'Q': 'ǫ', 'R': 'ʀ',
+        'S': 's', 'T': 'ᴛ', 'U': 'ᴜ', 'V': 'ᴠ', 'W': 'ᴡ', 'X': 'x', 'Y': 'ʏ', 'Z': 'ᴢ'
+    };
+    return text.split('').map(char => smallCapsMap[char] || char).join('');
+};
+
+// Format category with your exact styles
+const formatCategory = (category, cmds) => {
+    // Filter out commands with empty or undefined patterns
+    const validCmds = cmds.filter(cmd => cmd.pattern && cmd.pattern.trim() !== '');
+    
+    if (validCmds.length === 0) return ''; // Skip empty categories
+    
+    let title = `\n\`『 ${toSmallCaps(category.toUpperCase())} 』\`\n╭───────────────────⊷\n`;
+    let body = validCmds.map(cmd => {
+        const commandName = cmd.pattern || '';
+        return `*┋ ⬡ ${toSmallCaps(commandName)}*`;
+    }).join('\n');
+    let footer = `\n╰───────────────────⊷`;
+    return `${title}${body}${footer}`;
+};
+
+// Function to validate image URL
+const isValidImageUrl = (url) => {
+    if (!url || typeof url !== 'string' || url.trim() === '') {
+        return false;
+    }
+    
+    const urlLower = url.toLowerCase();
+    
+    // Check image extensions
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+    if (imageExtensions.some(ext => urlLower.endsWith(ext))) {
+        return true;
+    }
+    
+    return false;
+};
+
 cmd({
-pattern: "menu",
-alias: ["allmenu","fullmenu"],
-use: '.menu2',
-desc: "Show all bot commands",
-category: "menu",
-react: "📜",
-filename: __filename
+    pattern: "menu",
+    alias: ["m", "help", "allmenu","fullmenu"],
+    use: '.menu',
+    desc: "Show all bot commands",
+    category: "main",
+    react: "⚡",
+    filename: __filename
 },
-async (conn, mek, m, { from, quoted, body, isCmd, command, args, q, isGroup, sender, senderNumber, botNumber2, botNumber, pushname, isMe, isOwner, groupMetadata, groupName, participants, groupAdmins, isBotAdmins, isAdmins, reply }) => {
-try {
-let totalCommands = Object.keys(commands).length;
-let dec = `*╭────⬡ ${config.BOT_NAME} ⬡────⭓* 
-*├▢ 🤖 Owner:* ${config.OWNER_NAME}
-*├▢ 📜 Commands:* ${totalCommands}
-*├▢ ⏱️ Runtime:* ${runtime(process.uptime())}
-*├▢ 📡 Baileys:* Multi Device
-*├▢ ☁️ Platform:* Heroku
-*├▢ 📦 Prefix:* ${config.PREFIX}
-*├▢ ⚙️ Mode:* ${config.MODE}
-*├▢ 🏷️ Version:* 5.0.0 Bᴇᴛᴀ
-*╰─────────────────⭓*
+async (conn, mek, m, { from, quoted, body, isCmd, command, args, q, isGroup, sender, senderNumber, botNumber2, botNumber, pushname, isMe, isOwner, groupMetadata, groupName, participants, groupAdmins, isBotAdmins, isAdmins, reply, userConfig }) => {
+    try {
+        // Show typing presence before processing
+        await conn.sendPresenceUpdate('composing', from);
+        
+        let totalCommands = Object.keys(commands).length;
+        
+        // Get all unique categories and filter out undefined/null categories
+        const categories = [...new Set(Object.values(commands).map(c => c.category))].filter(cat => 
+            cat && cat.trim() !== '' && cat !== 'undefined'
+        );
+        
+        // Organize commands by category and filter out empty categories
+        const categorized = {};
+        categories.forEach(cat => {
+            const categoryCommands = Object.values(commands).filter(c => c.category === cat);
+            // Only add category if it has valid commands
+            const validCommands = categoryCommands.filter(cmd => cmd.pattern && cmd.pattern.trim() !== '');
+            if (validCommands.length > 0) {
+                categorized[cat] = validCommands;
+            }
+        });
 
-*╭────⬡ DOWNLOAD MENU ⬡────*
-*├▢ facebook*
-*├▢ mediafire*
-*├▢ tiktok*
-*├▢ twitter*
-*├▢ insta*
-*├▢ apk*
-*├▢ img*
-*├▢ tt2*
-*├▢ pins*
-*├▢ apk2*
-*├▢ fb2*
-*├▢ pinterest*
-*├▢ spotify*
-*├▢ play*
-*├▢ play2*
-*├▢ audio*
-*├▢ video*
-*├▢ video2*
-*├▢ ytmp3*
-*├▢ ytmp4*
-*├▢ song*
-*├▢ darama*
-*├▢ gdrive*
-*├▢ ssweb*
-*├▢ tiks*
-*╰────────────────*
+        // Build menu sections - only for categories that have commands
+        let menuSections = '';
+        for (const [category, cmds] of Object.entries(categorized)) {
+            if (cmds && cmds.length > 0) {
+                const section = formatCategory(category, cmds);
+                if (section !== '') {
+                    menuSections += section;
+                }
+            }
+        }
 
-*╭────⬡ GROUP MENU ⬡────*
-*├▢ grouplink*
-*├▢ kickall*
-*├▢ kickall2*
-*├▢ kickall3*
-*├▢ add*
-*├▢ remove*
-*├▢ kick*
-*├▢ promote*
-*├▢ demote*
-*├▢ dismiss*
-*├▢ revoke*
-*├▢ setgoodbye*
-*├▢ setwelcome*
-*├▢ delete*
-*├▢ getpic*
-*├▢ ginfo*
-*├▢ disappear on*
-*├▢ disappear off*
-*├▢ disappear 7D,24H*
-*├▢ allreq*
-*├▢ updategname*
-*├▢ updategdesc*
-*├▢ joinrequests*
-*├▢ senddm*
-*├▢ nikal*
-*├▢ mute*
-*├▢ unmute*
-*├▢ lockgc*
-*├▢ unlockgc*
-*├▢ invite*
-*├▢ tag*
-*├▢ hidetag*
-*├▢ tagall*
-*├▢ tagadmins*
-*╰────────────────*
+        // Get all values from userConfig with fallback to config
+        const BOT_NAME = userConfig?.BOT_NAME || config.BOT_NAME || "Bot";
+        const OWNER_NAME = userConfig?.OWNER_NAME || config.OWNER_NAME || "Owner";
+        const PREFIX = userConfig?.PREFIX || config.PREFIX || ".";
+        const MODE = userConfig?.MODE || config.MODE || "private";
+        const VERSION = userConfig?.VERSION || config.VERSION || "10.0.0";
+        const DESCRIPTION = userConfig?.DESCRIPTION || config.DESCRIPTION || "";
+        
+        // Get BOT_IMAGE from userConfig first, then config.BOT_IMAGE, then config.BOT_MEDIA_URL
+        const BOT_IMAGE = userConfig?.BOT_IMAGE || userConfig?.BOT_MEDIA_URL || config.BOT_IMAGE || config.BOT_MEDIA_URL;
+        
+        // Main menu text with only labels in small caps, values unchanged
+        let dec = `*╭┈───〔 ${BOT_NAME} 〕┈───⊷*
+*├▢ 🤖 ${toSmallCaps('Owner')}:* ${OWNER_NAME}
+*├▢ 📜 ${toSmallCaps('Commands')}:* ${totalCommands}
+*├▢ ⏱️ ${toSmallCaps('Runtime')}:* ${runtime(process.uptime())}
+*├▢ 📦 ${toSmallCaps('Prefix')}:* ${PREFIX}
+*├▢ ⚙️ ${toSmallCaps('Mode')}:* ${MODE}
+*├▢ 🏷️ ${toSmallCaps('Version')}:* ${VERSION}
+*╰───────────────────⊷*
+${menuSections}
 
-*╭────⬡ SETTING MENU ⬡────*
-*├▢ .prefix new prefix*  
-*├▢ .botname name*   
-*├▢ .ownername name*
-*├▢ .botimage reply to image*
-*├▢ .mode [public/private]* 
-*├▢ .autoreact [on/off]* 
-*├▢ .autoreply [on/off]*
-*├▢ .autosticker [on/off]*
-*├▢ .autotyping [on/off]*   
-*├▢ .autostatusview [on/off]*  
-*├▢ .autostatusreact [on/off]* 
-*├▢ .autostatusreply [on/off]*  
-*├▢ .autorecoding [on/off]* 
-*├▢ .alwaysonline [on/off]*
-*├▢ .welcome [on/off]*   
-*├▢ .goodbye [on/off]*   
-*├▢ .antilink [on/off]* 
-*├▢ .antilinkkick [on/off]*  
-*├▢ .deletelink [on/off]*
-*├▢ .antibad [on/off]*   
-*├▢ .antibot [on/off]* 
-*├▢ .read-message [on/off]*  
-*├▢ .mention-reply [on/off]*  
-*├▢ .admin-action [on/off]* 
-*├▢ .creact [on/off]*
-*├▢ .cemojis [❤️,🧡,💛]* 
-*╰────────────────*
+> ${DESCRIPTION || ''}`;
 
-*╭────⬡ AUDIO MENU ⬡────*
-*├▢ .bass*
-*├▢ .slow* 
-*├▢ .fast*
-*├▢ .reverse*
-*├▢ .baby* 
-*├▢ .demon*
-*├▢ .earrape*  
-*├▢ .nightcore*
-*├▢ .robot* 
-*├▢ .chipmunk* 
-*├▢ .radio* 
-*├▢ .blown* 
-*├▢ .tupai*   
-*├▢ .fat* 
-*├▢ .smooth*
-*├▢ .deep*
-*╰────────────────*
+        // Determine which image to use
+        let imageToUse;
+        const localImagePath = path.join(__dirname, '../lib/bot.png');
+        
+        // Check if BOT_IMAGE is a valid image URL
+        if (isValidImageUrl(BOT_IMAGE)) {
+            try {
+                // Check if server is accessible (timeout after 3 seconds)
+                await axios.head(BOT_IMAGE, { timeout: 3000 });
+                // Server is up, use the URL image
+                imageToUse = BOT_IMAGE;
+            } catch (serverError) {
+                // Server is down or inaccessible, use local image
+                console.log('Image server down, using local image:', serverError.message);
+                imageToUse = localImagePath;
+            }
+        } else {
+            // Invalid image format, use local image
+            imageToUse = localImagePath;
+        }
 
-*╭────⬡ REACTIONS MENU ⬡────*
-*├▢ bully @tag*
-*├▢ cuddle @tag*
-*├▢ cry @tag*
-*├▢ hug @tag*
-*├▢ awoo @tag*
-*├▢ kiss @tag*
-*├▢ lick @tag*
-*├▢ pat @tag*
-*├▢ smug @tag*
-*├▢ bonk @tag*
-*├▢ yeet @tag*
-*├▢ blush @tag*
-*├▢ smile @tag*
-*├▢ wave @tag*
-*├▢ highfive @tag*
-*├▢ handhold @tag*
-*├▢ nom @tag*
-*├▢ bite @tag*
-*├▢ glomp @tag*
-*├▢ slap @tag*
-*├▢ kill @tag*
-*├▢ happy @tag*
-*├▢ wink @tag*
-*├▢ poke @tag*
-*├▢ dance @tag*
-*├▢ cringe @tag*
-*╰────────────────*
+        // Send menu image with caption
+        await conn.sendMessage(from, { 
+            image: { url: imageToUse },
+            caption: dec, 
+            contextInfo: { 
+                mentionedJid: [m.sender], 
+                forwardingScore: 999, 
+                isForwarded: true, 
+                forwardedNewsletterMessageInfo: { 
+                    newsletterJid: '120363418144382782@newsletter', 
+                    newsletterName: BOT_NAME, 
+                    serverMessageId: 143 
+                } 
+            } 
+        }, { quoted: mek });
 
-*╭────⬡ LOGO MAKER ⬡────*
-*├▢ neonlight*
-*├▢ blackpink*
-*├▢ dragonball*
-*├▢ 3dcomic*
-*├▢ america*
-*├▢ naruto*
-*├▢ sadgirl*
-*├▢ clouds*
-*├▢ futuristic*
-*├▢ 3dpaper*
-*├▢ eraser*
-*├▢ sunset*
-*├▢ leaf*
-*├▢ galaxy*
-*├▢ sans*
-*├▢ boom*
-*├▢ hacker*
-*├▢ devilwings*
-*├▢ nigeria*
-*├▢ bulb*
-*├▢ angelwings*
-*├▢ zodiac*
-*├▢ luxury*
-*├▢ paint*
-*├▢ frozen*
-*├▢ castle*
-*├▢ tatoo*
-*├▢ valorant*
-*├▢ bear*
-*├▢ typography*
-*├▢ birthday*
-*╰────────────────*
+        // Send love.mp3 audio after menu (with small delay)
+        setTimeout(async () => {
+            try {
+                const audioPath = path.join(__dirname, '../lib/kamran.mp3');
+                
+                // Check if audio file exists
+                if (fs.existsSync(audioPath)) {
+                    await conn.sendMessage(from, {
+                        audio: { url: audioPath },
+                        mimetype: 'audio/mpeg',
+                        ptt: false  // Set to true if you want as voice note
+                    }, { quoted: mek });
+                } else {
+                    console.log('kamran.mp3 not found at:', audioPath);
+                }
+            } catch (audioError) {
+                console.log('Error sending audio:', audioError);
+            }
+        }, 1000); // 1 second delay after menu
 
-*╭────⬡ OWNER MENU ⬡────*
-*├▢ owner*
-*├▢ menu*
-*├▢ menu2*
-*├▢ vv*
-*├▢ listcmd*
-*├▢ allmenu*
-*├▢ repo*
-*├▢ block*
-*├▢ unblock*
-*├▢ fullpp*
-*├▢ setpp*
-*├▢ restart*
-*├▢ shutdown*
-*├▢ updatecmd*
-*├▢ alive*
-*├▢ ping*
-*├▢ gjid*
-*├▢ jid*
-*╰────────────────*
-
-*╭────⬡ FUN MENU ⬡────*
-*├▢ shapar*
-*├▢ rate*
-*├▢ insult*
-*├▢ hack*
-*├▢ ship*
-*├▢ character*
-*├▢ pickup*
-*├▢ joke*
-*├▢ hrt*
-*├▢ hpy*
-*├▢ syd*
-*├▢ anger*
-*├▢ shy*
-*├▢ kiss*
-*├▢ mon*
-*├▢ cunfuzed*
-*├▢ setpp*
-*├▢ hand*
-*├▢ nikal*
-*├▢ hold*
-*├▢ hug*
-*├▢ nikal*
-*├▢ hifi*
-*├▢ poke*
-*╰────────────────*
-
-*╭────⬡ CONVERT MENU ⬡────*
-*├▢ sticker*
-*├▢ sticker2*
-*├▢ emojimix*
-*├▢ fancy*
-*├▢ take*
-*├▢ tomp3*
-*├▢ tts*
-*├▢ trt*
-*├▢ base64*
-*├▢ unbase64*
-*├▢ binary*
-*├▢ dbinary*
-*├▢ tinyurl*
-*├▢ urldecode*
-*├▢ urlencode*
-*├▢ url*
-*├▢ repeat*
-*├▢ ask*
-*├▢ readmore*
-*╰────────────────*
-
-*╭────⬡ AI MENU ⬡────*
-*├▢ ai*
-*├▢ gpt3*
-*├▢ gpt2*
-*├▢ gptmini*
-*├▢ gpt*
-*├▢ meta*
-*├▢ blackbox*
-*├▢ luma*
-*├▢ dj*
-*├▢ khan*
-*├▢ jawad*
-*├▢ gpt4*
-*├▢ bing*
-*├▢ imagine*
-*├▢ imagine2*
-*├▢ copilot*
-*╰────────────────*
-
-*╭────⬡ MAIN MENU ⬡────*
-*├▢ ping*
-*├▢ ping2*
-*├▢ speed*
-*├▢ live*
-*├▢ alive*
-*├▢ runtime*
-*├▢ uptime*
-*├▢ repo*
-*├▢ owner*
-*├▢ menu*
-*├▢ menu2*
-*├▢ restart*
-*╰────────────────*
-
-*╭────⬡ ANIME MENU ⬡────*
-*├▢ fack*
-*├▢ truth*
-*├▢ dare*
-*├▢ dog*
-*├▢ awoo*
-*├▢ garl*
-*├▢ waifu*
-*├▢ neko*
-*├▢ megnumin*
-*├▢ neko*
-*├▢ maid*
-*├▢ loli*
-*├▢ animegirl*
-*├▢ animegirl1*
-*├▢ animegirl2*
-*├▢ animegirl3*
-*├▢ animegirl4*
-*├▢ animegirl5*
-*├▢ anime1*
-*├▢ anime2*
-*├▢ anime3*
-*├▢ anime4*
-*├▢ anime5*
-*├▢ animenews*
-*├▢ foxgirl*
-*├▢ naruto*
-*╰────────────────*
-
-*╭────⬡ OTHER MENU ⬡────*
-*├▢ timenow*
-*├▢ date*
-*├▢ count*
-*├▢ calculate*
-*├▢ countx*
-*├▢ flip*
-*├▢ coinflip*
-*├▢ rcolor*
-*├▢ roll*
-*├▢ fact*
-*├▢ cpp*
-*├▢ rw*
-*├▢ pair*
-*├▢ pair2*
-*├▢ pair3*
-*├▢ fancy*
-*├▢ logo*
-*├▢ define*
-*├▢ news*
-*├▢ movie*
-*├▢ weather*
-*├▢ srepo*
-*├▢ insult*
-*├▢ save*
-*├▢ wikipedia*
-*├▢ gpass*
-*├▢ githubstalk*
-*├▢ yts*
-*├▢ ytv*
-*╰────────────────*
-
-${config.DESCRIPTION}`;
-
-await conn.sendMessage(from, { 
-    image: { url: config.MENU_IMAGE_URL || 'https://files.catbox.moe/ly6553.jpg' }, 
-    caption: dec, 
-    contextInfo: { 
-        mentionedJid: [m.sender], 
-        forwardingScore: 999, 
-        isForwarded: true, 
-        forwardedNewsletterMessageInfo: { 
-            newsletterJid: '120363418144382782@newsletter', 
-            newsletterName: config.BOT_NAME, 
-            serverMessageId: 143 
-        } 
+    } catch (e) { 
+        console.log(e); 
+        reply(`Error: ${e}`); 
     } 
-}, { quoted: mek });
-
-} catch (e) { 
-    console.log(e); 
-    reply(`Error: ${e}`); 
-} 
 });
