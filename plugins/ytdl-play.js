@@ -1,4 +1,4 @@
-const { cmd } = require("../command"); // Const ko small 'const' kar diya
+const { cmd } = require('../command'); // Const ko small 'const' kar diya
 const axios = require('axios');
 const yts = require('yt-search');
 
