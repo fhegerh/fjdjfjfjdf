@@ -9,7 +9,7 @@ const axios = require('axios')
 cmd({
 pattern: "menu",
 alias: ["allmenu","fullmenu"],
-use: '.menu2',
+use: '.menu',
 desc: "Show all bot commands",
 category: "menu",
 react: "📜",
@@ -26,13 +26,11 @@ let dec = `*╭────⬡ ${config.BOT_NAME} ⬡────⭓*
 *├▢ ☁️ Platform:* Heroku
 *├▢ 📦 Prefix:* ${config.PREFIX}
 *├▢ ⚙️ Mode:* ${config.MODE}
-*├▢ 🏷️ Version:* 10.0.0 Bᴇᴛᴀ
+*├▢ 🏷️ Version:* 5.0.0 Bᴇᴛᴀ
 *╰─────────────────⭓*
 
 *╭────⬡ DOWNLOAD MENU ⬡────*
 *├▢ facebook*
-*├▢ moviebox*
-*├▢ mbox*
 *├▢ mediafire*
 *├▢ tiktok*
 *├▢ twitter*
