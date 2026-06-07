@@ -456,7 +456,7 @@ cmd({
     pattern: "calculate",
     alias: ["calc"],
     desc: "Evaluate a mathematical expression.",
-    category: "utilities",
+    category: "utility",
     filename: __filename
 },
 async (conn, mek, m, { args, reply }) => {

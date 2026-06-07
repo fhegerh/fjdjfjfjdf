@@ -1,99 +1,94 @@
-const axios = require('axios');
+const axios = require("axios");
 const FormData = require('form-data');
-const fs = require('fs-extra');
-const path = require('path');
-const { cmd } = require('../command');
-
-/**
- * Core Uploader Function
- */
-async function uploadAmyura(filePath) {
-    const filename = path.basename(filePath);
-    const ext = path.extname(filename).toLowerCase();
-    const mimeTypes = {
-        '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
-        '.webp': 'image/webp', '.gif': 'image/gif', '.mp4': 'video/mp4',
-        '.pdf': 'application/pdf', '.mp3': 'audio/mpeg', '.zip': 'application/zip',
-        '.ogg': 'audio/ogg',
-    };
-    const contentType = mimeTypes[ext] || 'application/octet-stream';
-
-    const form = new FormData();
-    form.append('file', fs.createReadStream(filePath), { filename, contentType });
-
-    const res = await axios.post('https://uploader.amyuracp.my.id/upload', form, {
-        headers: {
-            ...form.getHeaders(),
-            'origin': 'https://uploader.amyuracp.my.id',
-            'referer': 'https://uploader.amyuracp.my.id/',
-            'accept': 'application/json',
-        },
-        maxBodyLength: Infinity,
-        maxContentLength: Infinity,
-        timeout: 30000,
-    });
-
-    // Extracting URL from response
-    const data = res.data;
-    const url = data?.url || data?.file_url || data?.link || data?.files;
-    
-    if (url) return url.startsWith('http') ? url : `https://uploader.amyuracp.my.id${url}`;
-    
-    // Fallback regex matching
-    const raw = JSON.stringify(data);
-    const urlMatch = raw.match(/https:\/\/uploader\.amyuracp\.my\.id\/[^\s"'<]+/);
-    if (!urlMatch) throw new Error("URL not found in response.");
-    return urlMatch[0];
-}
-
-// --- Bot Command ---
+const fs = require('fs');
+const os = require('os');
+const path = require("path");
+const { cmd, commands } = require("../command");
 
 cmd({
-    pattern: "amyura",
-    alias: ["upload", "tourl", "host"],
-    react: "☁️",
-    desc: "Upload media (Image/Video/Audio/Doc) to Amyura Cloud and get a permanent link.",
-    category: "tools",
-    filename: __filename
-},           
-async (conn, mek, m, { from, reply, quoted }) => {
-    let mediaPath;
-    try {
-        // 1. Check if there is media to upload
-        if (!quoted) return reply("⚠️ Please reply to an image, video, audio, or document to upload.");
-
-        await conn.sendMessage(from, { react: { text: "⏳", key: m.key } });
-
-        // 2. Download Media
-        const mediaBuffer = await quoted.download();
-        const fileName = `amyura_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-        mediaPath = path.join('tmp', fileName);
-        
-        // Ensure tmp directory exists
-        if (!fs.existsSync('tmp')) fs.mkdirSync('tmp');
-        
-        fs.writeFileSync(mediaPath, mediaBuffer);
-
-        // 3. Upload to Amyura
-        const resultUrl = await uploadAmyura(mediaPath);
-
-        // 4. Send Success Message
-        const caption = `✅ *UPLOAD SUCCESS*\n\n` +
-                        `🔗 *Link:* ${resultUrl}\n` +
-                        `📂 *Format:* ${path.extname(mediaPath).toUpperCase()}\n\n` +
-                        `*© ᴘᴏᴡᴇʀᴇᴅ ʙʏ DR KAMRAN*`;
-
-        await reply(caption);
-        await conn.sendMessage(from, { react: { text: '✅', key: m.key } });
-
-    } catch (error) {
-        console.error("Upload Error:", error);
-        await conn.sendMessage(from, { react: { text: '❌', key: m.key } });
-        reply(`❌ *Upload Failed:* ${error.message || "Server Error"}`);
-    } finally {
-        // 5. Cleanup: Delete local file
-        if (mediaPath && fs.existsSync(mediaPath)) {
-            fs.unlinkSync(mediaPath);
-        }
+  'pattern': "tourl",
+  'alias': ["imgtourl", "imgurl", "url", "geturl", "upload"],
+  'react': '🖇',
+  'desc': "Convert media to Catbox URL",
+  'category': "utility",
+  'use': ".tourl [reply to media]",
+  'filename': __filename
+}, async (client, message, args, { reply }) => {
+  try {
+    // Check if quoted message exists and has media
+    const quotedMsg = message.quoted ? message.quoted : message;
+    const mimeType = (quotedMsg.msg || quotedMsg).mimetype || '';
+    
+    if (!mimeType) {
+      throw "Please reply to an image, video, audio, or other supported file";
     }
+
+    // Download the media
+    const mediaBuffer = await quotedMsg.download();
+    const tempFilePath = path.join(os.tmpdir(), `catbox_upload_${Date.now()}`);
+    fs.writeFileSync(tempFilePath, mediaBuffer);
+
+    // Get file extension based on mime type
+    let extension = '';
+    if (mimeType.includes('image/jpeg')) extension = '.jpg';
+    else if (mimeType.includes('image/png')) extension = '.png';
+    else if (mimeType.includes('image/webp')) extension = '.webp';
+    else if (mimeType.includes('video')) extension = '.mp4';
+    else if (mimeType.includes('audio/mpeg')) extension = '.mp3';
+    else if (mimeType.includes('audio/mp4') || mimeType.includes('audio/x-m4a')) extension = '.m4a';
+    else if (mimeType.includes('application/zip') || mimeType.includes('application/x-zip-compressed')) extension = '.zip';
+    else if (mimeType.includes('application/javascript') || mimeType.includes('text/javascript')) extension = '.js';
+    else if (mimeType.includes('audio/')) extension = '.audio';
+    else if (mimeType.includes('image/')) extension = '.image';
+    else if (mimeType.includes('text/')) extension = '.txt';
+    else extension = '.file';
+    
+    const fileName = `file${extension}`;
+
+    // Prepare form data for Catbox
+    const form = new FormData();
+    form.append('fileToUpload', fs.createReadStream(tempFilePath), fileName);
+    form.append('reqtype', 'fileupload');
+
+    // Upload to Catbox
+    const response = await axios.post("https://catbox.moe/user/api.php", form, {
+      headers: form.getHeaders()
+    });
+
+    if (!response.data) {
+      throw "Error uploading to Catbox";
+    }
+
+    const mediaUrl = response.data;
+    fs.unlinkSync(tempFilePath);
+
+    // Determine media type for response
+    let mediaType = 'File';
+    if (mimeType.includes('image')) mediaType = 'Image';
+    else if (mimeType.includes('video')) mediaType = 'Video';
+    else if (mimeType.includes('audio')) mediaType = 'Audio';
+    else if (mimeType.includes('application/zip')) mediaType = 'ZIP Archive';
+    else if (mimeType.includes('application/javascript') || mimeType.includes('text/javascript')) mediaType = 'JavaScript';
+
+    // Send response
+    await reply(
+      `*${mediaType} Uploaded Successfully*\n\n` +
+      `*Size:* ${formatBytes(mediaBuffer.length)}\n` +
+      `*URL:* ${mediaUrl}\n\n` +
+      `> © Uploaded by DR KAMRAN 💜`
+    );
+
+  } catch (error) {
+    console.error(error);
+    await reply(`Error: ${error.message || error}`);
+  }
 });
+
+// Helper function to format bytes
+function formatBytes(bytes) {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}

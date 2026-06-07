@@ -1,3 +1,5 @@
+// XD 
+
 const config = require('../config');
 const { cmd } = require('../command');
 
