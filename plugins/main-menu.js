@@ -159,26 +159,6 @@ ${menuSections}
             } 
         }, { quoted: mek });
 
-        // Send love.mp3 audio after menu (with small delay)
-        setTimeout(async () => {
-            try {
-                const audioPath = path.join(__dirname, '../lib/kamran.mp3');
-                
-                // Check if audio file exists
-                if (fs.existsSync(audioPath)) {
-                    await conn.sendMessage(from, {
-                        audio: { url: audioPath },
-                        mimetype: 'audio/mpeg',
-                        ptt: false  // Set to true if you want as voice note
-                    }, { quoted: mek });
-                } else {
-                    console.log('kamran.mp3 not found at:', audioPath);
-                }
-            } catch (audioError) {
-                console.log('Error sending audio:', audioError);
-            }
-        }, 1000); // 1 second delay after menu
-
     } catch (e) { 
         console.log(e); 
         reply(`Error: ${e}`); 
