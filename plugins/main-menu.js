@@ -20,19 +20,19 @@ const toSmallCaps = (text) => {
     return text.split('').map(char => smallCapsMap[char] || char).join('');
 };
 
-// Format category with your exact styles
+// Format category with premium sleek styles
 const formatCategory = (category, cmds) => {
     // Filter out commands with empty or undefined patterns
     const validCmds = cmds.filter(cmd => cmd.pattern && cmd.pattern.trim() !== '');
     
     if (validCmds.length === 0) return ''; // Skip empty categories
     
-    let title = `\n\`『 ${toSmallCaps(category.toUpperCase())} 』\`\n╭───────────────────⊷\n`;
+    let title = `\n╭━━━〔 *${toSmallCaps(category.toUpperCase())}* 〕━━━┈⊷\n`;
     let body = validCmds.map(cmd => {
         const commandName = cmd.pattern || '';
-        return `*┋ ⬡ ${toSmallCaps(commandName)}*`;
+        return `┃ ⚡ \`${commandName}\``;
     }).join('\n');
-    let footer = `\n╰───────────────────⊷`;
+    let footer = `\n╰━━━━━━━━━━━━━━━━━━━┈⊷`;
     return `${title}${body}${footer}`;
 };
 
@@ -107,18 +107,20 @@ async (conn, mek, m, { from, quoted, body, isCmd, command, args, q, isGroup, sen
         // Get BOT_IMAGE from userConfig first, then config.BOT_IMAGE, then config.BOT_MEDIA_URL
         const BOT_IMAGE = userConfig?.BOT_IMAGE || userConfig?.BOT_MEDIA_URL || config.BOT_IMAGE || config.BOT_MEDIA_URL;
         
-        // Main menu text with only labels in small caps, values unchanged
-        let dec = `*╭┈───〔 ${BOT_NAME} 〕┈───⊷*
-*├▢ 🤖 ${toSmallCaps('Owner')}:* ${OWNER_NAME}
-*├▢ 📜 ${toSmallCaps('Commands')}:* ${totalCommands}
-*├▢ ⏱️ ${toSmallCaps('Runtime')}:* ${runtime(process.uptime())}
-*├▢ 📦 ${toSmallCaps('Prefix')}:* ${PREFIX}
-*├▢ ⚙️ ${toSmallCaps('Mode')}:* ${MODE}
-*├▢ 🏷️ ${toSmallCaps('Version')}:* ${VERSION}
-*╰───────────────────⊷*
+        // Main menu text with premium UI layout
+        let dec = `✨ *${toSmallCaps(BOT_NAME)} ᴍᴜʟᴛɪ-ᴅᴇᴠɪᴄᴇ* ✨
+
+┌━━━〔 *ɪɴғᴏ ʙᴏx* 〕━━━┈⊷
+┃ 👑 *${toSmallCaps('Owner')}:* ${OWNER_NAME}
+┃ 📊 *${toSmallCaps('Commands')}:* ${totalCommands}
+┃ ⏳ *${toSmallCaps('Runtime')}:* ${runtime(process.uptime())}
+┃ 📡 *${toSmallCaps('Prefix')}:*  [  ${PREFIX}  ]
+┃ ⚙️ *${toSmallCaps('Mode')}:* ${MODE}
+┃ 🏷️ *${toSmallCaps('Version')}:* ${VERSION}
+╰━━━━━━━━━━━━━━━━━━━┈⊷
 ${menuSections}
 
-> ${DESCRIPTION || ''}`;
+> 💡 _${DESCRIPTION || 'Powered by WhatsApp Bot'}_`;
 
         // Determine which image to use
         let imageToUse;
