@@ -1,7 +1,9 @@
 const { cmd, commands } = require('../command');
 const axios = require('axios');
 const { lidToPhone } = require('../lib/functions');
-const { PubgX } = require('../lib/private');
+const { DR } = require('../lib/kamran');  
+
+
 
 // Base URL
 const BASE_URL = 'https://drkamran-mini-bot.vercel.app';
