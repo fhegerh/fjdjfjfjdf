@@ -33,7 +33,7 @@ async (conn, mek, m, { from, reply, args }) => {
 
 📍 Coordinates: ${data.data.coordinates.latitude}, ${data.data.coordinates.longitude}
 
-_Provided by JawadTechXD_
+_Provided by Bagga Shar_
 `.trim();
 
         await reply(weatherInfo);

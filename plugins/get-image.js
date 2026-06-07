@@ -6,7 +6,7 @@ cmd({
     alias: ["tophoto","url2image","urltoimage"],
     desc: "Convert image URL to WhatsApp image",
     alias: ["imagefromurl", "fetchimage"],
-    category: "media",
+    category: "utility",
     react: "🖼️",
     filename: __filename
 }, async (conn, mek, m, { from, reply, text }) => {

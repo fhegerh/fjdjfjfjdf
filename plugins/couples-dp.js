@@ -1,47 +1,50 @@
-const { cmd, commands } = require('../command');
-const axios = require('axios');
+const { cmd } = require("../command");
+const axios = require("axios");
 
 cmd({
-  'pattern': "couplepp",
-  'alias': ["couple", "cpp"],
-  'react': '💑',
-  'desc': "Get a male and female couple profile picture.",
-  'category': "image",
-  'use': ".couplepp",
-  'filename': __filename
-}, async (conn, m, store, {
-  from,
-  args,
-  reply
-}) => {
+  pattern: "cpp",
+  alias: ["couplepp", "couplepic", "couple"],
+  react: "💑",
+  desc: "Get matching couples profile pictures.",
+  category: "utility",
+  use: ".cpp",
+  filename: __filename
+}, async (conn, m, store, { from, args, reply }) => {
   try {
-    reply("*💑 Fetching couple profile pictures...*");
+    // Send fetching message
+    await reply("*💫 Fetching Couples Profile Pictures...*");
     
-    const response = await axios.get("https://api.davidcyriltech.my.id/couplepp");
+    // React: Processing ⏳
+    await conn.sendMessage(from, { react: { text: '⏳', key: m.key } });
 
-    if (!response.data || !response.data.success) {
-      return reply("❌ Failed to fetch couple profile pictures. Please try again later.");
+    const apiUrl = `https://okatsu-rolezapiiz.vercel.app/random/ppcp`;
+    const { data } = await axios.get(apiUrl);
+    
+    if (data.status && data.result) {
+      // Send male picture
+      await conn.sendMessage(from, { 
+        image: { url: data.result.cowo },
+        caption: "👦 *Male Profile Picture*"
+      }, { quoted: m });
+
+      // Send female picture
+      await conn.sendMessage(from, { 
+        image: { url: data.result.cewe },
+        caption: "👩 *Female Profile Picture*"
+      });
+
+      // React: Success ✅
+      await conn.sendMessage(from, { react: { text: '✅', key: m.key } });
+
+    } else {
+      reply("❌ Failed to fetch couples pictures. Please try again.");
+      // React: Error ❌
+      await conn.sendMessage(from, { react: { text: '❌', key: m.key } });
     }
-
-    const malePp = response.data.male;
-    const femalePp = response.data.female;
-
-    if (malePp) {
-      await conn.sendMessage(from, {
-        'image': { 'url': malePp },
-        'caption': "👨 Male Couple Profile Picture"
-      }, { 'quoted': m });
-    }
-
-    if (femalePp) {
-      await conn.sendMessage(from, {
-        'image': { 'url': femalePp },
-        'caption': "👩 Female Couple Profile Picture"
-      }, { 'quoted': m });
-    }
-
   } catch (error) {
-    console.error(error);
-    reply("❌ An error occurred while fetching the couple profile pictures.");
+    console.error("Couples PP Error:", error);
+    reply("❌ An error occurred while fetching couples pictures.");
+    // React: Error ❌
+    await conn.sendMessage(from, { react: { text: '❌', key: m.key } });
   }
 });
