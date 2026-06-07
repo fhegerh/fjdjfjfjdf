@@ -3,240 +3,102 @@ const config = require("../config");
 const sharp = require("sharp");
 const { cmd } = require("../command");
 
-// Helper function to process high-compatibility jpeg thumbnails
+// Security Dictionary & Decoder Layer
+const _0xkmr = ["bWxmYmQy", "bW92aWUy", "ZG93bmxvYWRtb3ZpZTI=", "Y2luZW1hbGsy", "ZG93bmxvYWRlcg==", "YXJyYXlidWZmZXI=", "cmVzaXpl", "anBlZw==", "dG9CdWZmZXI=", "bWVzc2FnZXMudXBzZXJ0", "ZXh0ZW5kZWRUZXh0TWVzc2FnZQ==", "Y29udGV4dEluZm8=", "Y29udmVyc2F0aW9u", "dmlkZW8vbXA0", "dmFqaXJhLTIzaWtzc2lnNTEtMTc4MDY1MTg3Mzc2Nw==", "aHR0cHM6Ly92YWppcmEtb2ZmaWNpYWwtYXBpcy52ZXJjZWwuYXBwL2FwaS9tbGZiZHM=", "aHR0cHM6Ly92YWppcmEtb2ZmaWNpYWwtYXBpcy52ZXJjZWwuYXBwL2FwaS9tbGZiZGRs"];
+const _0x5a2b = (i) => Buffer.from(_0xkmr[i], "base64").toString("utf-8");
+
 async function getThumbnailBuffer(url) {
-  if (!url) return null;
-  try {
-    const { data } = await axios.get(url, { responseType: "arraybuffer" });
-    return await sharp(data)
-      .resize(300, 300)
-      .jpeg({ quality: 80 })
-      .toBuffer();
-  } catch (err) {
-    console.error("Error processing thumbnail:", err.message || err);
-    return null;
-  }
+    if (!url) return null;
+    try {
+        const { data } = await axios.get(url, { responseType: _0x5a2b(5) });
+        return await sharp(data)[_0x5a2b(6)](300, 300)[_0x5a2b(7)]({ quality: 80 })[_0x5a2b(8)]();
+    } catch (e) { return null; }
 }
 
 cmd({
-    name: "mlfbd2",
-    alias: ["movie2", "downloadmovie2", "cinemalk2"],
-    category: "downloader",
-    desc: "Search and download movies from MLFBD via API (Secure Version)",
+    name: _0x5a2b(0),
+    alias: [_0x5a2b(1), _0x5a2b(2), _0x5a2b(3)],
+    category: _0x5a2b(4),
+    desc: "Fully Protected Movie Engine Engine",
     filename: __filename
 },
-async (conn, mek, m, { from, quoted, body, isCmd, command, args, q, isGroup, sender, senderNumber, botNumber2, botNumber, pushname, isMe, isOwner, groupMetadata, groupName, participants, groupAdmins, isBotAdmins, isAdmins, reply }) => {
+async (conn, mek, m, _0xobf) => {
+    const { from, reply, q } = _0xobf;
+    const _0xcl = conn;
+    const _0xreact = async (em) => { await _0xcl.sendMessage(from, { react: { text: em, key: mek.key } }); };
     
-    const client = conn;
-
-    // React Helper function for handling emoji reactions
-    const react = async (emoji) => {
-        return await conn.sendMessage(from, { react: { text: emoji, key: mek.key } });
-    };
-
-    // ================= ENCRYPTED CREDENTIALS (HIDDEN) =================
-    const _0xkr1 = "dmFqaXJhLTIzaWtzc2lnNTEtMTc4MDY1MTg3Mzc2Nw=="; 
-    const _0xkr2 = "aHR0cHM6Ly92YWppcmEtb2ZmaWNpYWwtYXBpcy52ZXJjZWwuYXBwL2FwaS9tbGZiZHM=";
-    const _0xkr3 = "aHR0cHM6Ly92YWppcmEtb2ZmaWNpYWwtYXBpcy52ZXJjZWwuYXBwL2FwaS9tbGZiZGRs=";
-
-    // Auto Decoding at Runtime
-    const apiKey = Buffer.from(_0xkr1, 'base64').toString('utf-8');
-    const searchApiUrl = Buffer.from(_0xkr2, 'base64').toString('utf-8');
-    const downloadApiUrl = Buffer.from(_0xkr3, 'base64').toString('utf-8');
-    // =================================================================
-
     try {
-        await react("🎬");
-
-        if (!q) {
-            return reply(
-                "❌ *Opps! Movie Name Missing* ❌\n\n" +
-                "Please provide a movie name to search!\n" +
-                "📌 *Example:* `.mlfbd From Season 4`"
-            );
-        }
-
+        await _0xreact("🎬");
+        if (!q) return reply("❌ *Opps! Movie Name Missing* ❌\n\nPlease provide a movie name to search!\n📌 *Example:* `.mlfbd From Season 4`");
         await reply(`🔍 _Searching for *"${q}"* on MLFBD servers..._`);
 
-        const response = await axios.get(searchApiUrl, {
-            params: { apikey: apiKey, text: q },
-            timeout: 30000
-        });
-
-        if (response.status !== 200 || !response.data || !response.data.result || response.data.result.length === 0) {
-            await react("❌");
-            return reply("🛸 *No Results Found!* \nWe couldn't find anything matching your query on MLFBD.");
+        const _0xr1 = await axios.get(_0x5a2b(15), { params: { apikey: _0x5a2b(14), text: q }, timeout: 30000 });
+        if (_0xr1.status !== 200 || !_0xr1.data || !_0xr1.data.result || _0xr1.data.result.length === 0) {
+            await _0xreact("❌"); return reply("🛸 *No Results Found!* \nWe couldn't find anything matching your query.");
         }
 
-        const results = response.data.result;
-
-        // Stylish Search List Layout
-        let listText = `┏━━━━━━━━━━━━━━━━━━━━━━━━┓\n`;
-        listText += `┃ 🎬  *MLFBD MOVIE SEARCH*  🎬 ┃\n`;
-        listText += `┗━━━━━━━━━━━━━━━━━━━━━━━━┛\n\n`;
-        listText += `🔎 *Query:* \`${q.toUpperCase()}\`\n`;
-        listText += `✨ *Results Found:* ${results.length}\n\n`;
-        listText += `┌─────────────────────────┐\n`;
-
-        results.forEach((v, i) => {
-            listText += `│ 🍿 *[${i + 1}]* _${v.title}_\n`;
-            listText += `│ ├─ ⭐ *Rating:* ${v.rate || 'N/A'}\n`;
-            listText += `│ └─ 📅 *Year:* ${v.year || 'N/A'}\n`;
-            if (i !== results.length - 1) listText += `├─────────────────────────┤\n`;
+        const _0xdata = _0xr1.data.result;
+        let _0xlist = `┏━━━━━━━━━━━━━━━━━━━━━━━━┓\n┃ 🎬  *MLFBD MOVIE SEARCH*  🎬 ┃\n┗━━━━━━━━━━━━━━━━━━━━━━━━┛\n\n🔎 *Query:* \`${q.toUpperCase()}\`\n✨ *Results Found:* ${_0xdata.length}\n\n┌─────────────────────────┐\n`;
+        _0xdata.forEach((v, i) => {
+            _0xlist += `│ 🍿 *[${i + 1}]* _${v.title}_\n│ ├─ ⭐ *Rating:* ${v.rate || "N/A"}\n│ └─ 📅 *Year:* ${v.year || "N/A"}\n`;
+            if (i !== _0xdata.length - 1) _0xlist += `├─────────────────────────┤\n`;
         });
+        _0xlist += `└─────────────────────────┘\n\n⚡ *Reply with the item number* to view options.\n\n> *© KAMRAN-MINI-BOT ッ*`;
 
-        listText += `└─────────────────────────┘\n\n`;
-        listText += `⚡ *Reply with the item number* to view options.\n\n`;
-        listText += `> *© KAMRAN-MINI-BOT ッ*`;
+        const _0xSmsg = await _0xcl.sendMessage(from, { image: { url: _0xdata[0].image || "https://placehold.co/600x400?text=No+Poster" }, caption: _0xlist }, { quoted: mek });
+        let _0xt1, _0xt2;
 
-        const sentSearch = await client.sendMessage(from, {
-            image: { url: results[0].image || "https://placehold.co/600x400?text=No+Poster" },
-            caption: listText
-        }, { quoted: mek });
-
-        const searchMsgId = sentSearch.key.id;
-        let detailsTimeout, downloadTimeout;
-
-        // ================= INTERACTIVE STEP: DETAILS HANDLER =================
-        const detailsHandler = async (update) => {
+        const _0xdetH = async (_up) => {
             try {
-                const msg = update.messages[0];
-                if (!msg?.message || msg.key.remoteJid !== from) return;
+                const _msg = _up.messages[0]; if (!_msg?.message || _msg.key.remoteJid !== from) return;
+                const _ctx = _msg.message[_0x5a2b(10)]?.[_0x5a2b(11)] || _msg.message[_0x5a2b(12)]?.[_0x5a2b(11)];
+                if (_ctx?.stanzaId !== _0xSmsg.key.id) return;
 
-                const ctx = msg.message.extendedTextMessage?.contextInfo || msg.message.conversation?.contextInfo;
-                if (ctx?.stanzaId !== searchMsgId) return;
+                const _txt = (_msg.message[_0x5a2b(12)] || _msg.message[_0x5a2b(10)]?.text || "").trim();
+                const _num = parseInt(_txt); if (isNaN(_num) || _num < 1 || _num > _0xdata.length) return;
 
-                const choice = (msg.message.conversation || msg.message.extendedTextMessage?.text || "").trim();
-                const num = parseInt(choice);
-                if (isNaN(num) || num < 1 || num > results.length) return;
-                
-                const selected = results[num - 1];
-                if (!selected) return;
+                const _sel = _0xdata[_num - 1]; if (!_sel) return;
+                _0xcl.ev.off(_0x5a2b(9), _0xdetH); clearTimeout(_0xt1);
+                await _0xreact("⏳");
 
-                client.ev.off("messages.upsert", detailsHandler);
-                clearTimeout(detailsTimeout);
+                const _0xr2 = await axios.get(_0x5a2b(16), { params: { apikey: _0x5a2b(14), url: _sel.link }, timeout: 30000 });
+                if (_0xr2.status !== 200 || !_0xr2.data || !_0xr2.data.result) { await _0xreact("❌"); return reply("❌ *Error:* Failed to load properties."); }
 
-                await react("⏳");
+                const _det = _0xr2.data.result; const _dl = _det.downloads || [];
+                if (_dl.length === 0) { await _0xreact("❌"); return reply("❌ *Sorry:* No downloadable files located."); }
 
-                const detailResponse = await axios.get(downloadApiUrl, {
-                    params: { apikey: apiKey, url: selected.link },
-                    timeout: 30000
-                });
+                let _cap = `╭──────────────◆\n│ 🎥 *${_det.title || _sel.title}*\n╰──────────────◆\n\n🎭 *Genres:* \`${_det.genres || "N/A"}\`\n📅 *Release:* ${_det.release || "N/A"}\n🌟 *Rating:* ${_det.rating || _sel.rate}\n\n📝 *Description:* \n_${_det.description || "No description available."}_\n\n┏───────────────────────┓\n│   💾  AVAILABLE MIRRORS   │\n┗───────────────────────┛\n`;
+                _dl.forEach((d, i) => { _cap += `╭─ 📥 *[${i + 1}]* Mirror ${i + 1}\n├─ 🌟 *Quality:* \`${d.quality || "720p"}\`\n╰─ ⚖️ *Size:* \`${d.size || "Unknown"}\`\n\n`; });
+                _cap += `⚡ *Reply with a mirror number* to start downloading.\n\n> *© KAMRAN-MINI-BOT ッ*`;
 
-                if (detailResponse.status !== 200 || !detailResponse.data || !detailResponse.data.result) {
-                    await react("❌");
-                    return reply("❌ *Error:* Failed to pull download properties for this item.");
-                }
+                const _0xDmsg = await _0xcl.sendMessage(from, { image: { url: _det.image || _sel.image || "https://placehold.co/600x400?text=No+Poster" }, caption: _cap }, { quoted: _msg });
 
-                const movieDetails = detailResponse.data.result;
-                const dlLinks = movieDetails.downloads || [];
-
-                if (dlLinks.length === 0) {
-                    await react("❌");
-                    return reply("❌ *Sorry:* No downloadable files were located for this selection.");
-                }
-
-                // Stylish Movie Details Layout
-                let cap = `╭──────────────◆\n`;
-                cap += `│ 🎥 *${movieDetails.title || selected.title}*\n`;
-                cap += `╰──────────────◆\n\n`;
-                cap += `🎭 *Genres:* \`${movieDetails.genres || 'N/A'}\`\n`;
-                cap += `📅 *Release:* ${movieDetails.release || 'N/A'}\n`;
-                cap += `🌟 *Rating:* ${movieDetails.rating || selected.rate}\n\n`;
-                cap += `📝 *Description:* \n_${movieDetails.description || 'No description available.'}_\n\n`;
-                
-                cap += `┏───────────────────────┓\n`;
-                cap += `│   💾  AVAILABLE MIRRORS   │\n`;
-                cap += `┗───────────────────────┛\n`;
-                
-                dlLinks.forEach((dl, i) => {
-                    cap += `╭─ 📥 *[${i + 1}]* Mirror ${i + 1}\n`;
-                    cap += `├─ 🌟 *Quality:* \`${dl.quality || '720p'}\`\n`;
-                    cap += `╰─ ⚖️ *Size:* \`${dl.size || 'Unknown'}\`\n\n`;
-                });
-
-                cap += `⚡ *Reply with a mirror number* to start downloading.\n\n`;
-                cap += `> *© KAMRAN-MINI-BOT ッ*`;
-
-                const sentDetail = await client.sendMessage(from, {
-                    image: { url: movieDetails.image || selected.image || "https://placehold.co/600x400?text=No+Poster" },
-                    caption: cap
-                }, { quoted: msg });
-
-                const detailMsgId = sentDetail.key.id;
-
-                // ================= INTERACTIVE STEP: DOWNLOAD HANDLER =================
-                const downloadHandler = async (up) => {
+                const _0xdlH = async (_up2) => {
                     try {
-                        const dlMsg = up.messages[0];
-                        if (!dlMsg?.message || dlMsg.key.remoteJid !== from) return;
+                        const _dlmsg = _up2.messages[0]; if (!_dlmsg?.message || _dlmsg.key.remoteJid !== from) return;
+                        const _dlctx = _dlmsg.message[_0x5a2b(10)]?.[_0x5a2b(11)] || _dlmsg.message[_0x5a2b(12)]?.[_0x5a2b(11)];
+                        if (_dlctx?.stanzaId !== _0xDmsg.key.id) return;
 
-                        const dlCtx = dlMsg.message.extendedTextMessage?.contextInfo || dlMsg.message.conversation?.contextInfo;
-                        if (dlCtx?.stanzaId !== detailMsgId) return;
+                        const _pk = (_dlmsg.message[_0x5a2b(12)] || _dlmsg.message[_0x5a2b(10)]?.text || "").trim();
+                        const _dln = parseInt(_pk); if (isNaN(_dln) || _dln < 1 || _dln > _dl.length) return;
 
-                        const pick = (dlMsg.message.conversation || dlMsg.message.extendedTextMessage?.text || "").trim();
-                        const dlNum = parseInt(pick);
-                        if (isNaN(dlNum) || dlNum < 1 || dlNum > dlLinks.length) return;
+                        const _seldl = _dl[_dln - 1]; if (!_seldl) return;
+                        _0xcl.ev.off(_0x5a2b(9), _0xdlH); clearTimeout(_0xt2);
 
-                        const selectedDl = dlLinks[dlNum - 1];
-                        if (!selectedDl) return;
-
-                        client.ev.off("messages.upsert", downloadHandler);
-                        clearTimeout(downloadTimeout);
-
-                        await client.sendMessage(from, { react: { text: "📥", key: dlMsg.key } });
-                        
-                        const targetFileUrl = selectedDl.direct;
-                        const cleanFileName = `${(movieDetails.title || selected.title).replace(/[^a-zA-Z0-9 ]/g, "_")}_${selectedDl.quality || '720p'}.mp4`;
+                        await _0xcl.sendMessage(from, { react: { text: "📥", key: _dlmsg.key } });
+                        const _turl = _seldl.direct;
+                        const _cfn = `${(_det.title || _sel.title).replace(/[^a-zA-Z0-9 ]/g, "_")}_${_seldl.quality || "720p"}.mp4`;
 
                         await reply(`🚀 *Processing Request...* \nUploading your movie as a Document. Please hold tight!`);
+                        let _fcap = `╭───────────────────◆\n│ 🎬 *${_det.title || _sel.title}*\n├───────────────────◆\n│ 🌟 *Quality:* ${_seldl.quality || "720p"}\n│ ⚖️ *Size:* ${_seldl.size || "N/A"}\n╰───────────────────◆\n\n> *© KAMRAN-MINI-BOT ッ*`;
 
-                        // Stylish Final Caption
-                        let finalCaption = `╭───────────────────◆\n`;
-                        finalCaption += `│ 🎬 *${movieDetails.title || selected.title}*\n`;
-                        finalCaption += `├───────────────────◆\n`;
-                        finalCaption += `│ 🌟 *Quality:* ${selectedDl.quality || '720p'}\n`;
-                        finalCaption += `│ ⚖️ *Size:* ${selectedDl.size || 'N/A'}\n`;
-                        finalCaption += `╰───────────────────◆\n\n`;
-                        finalCaption += `> *© KAMRAN-MINI-BOT ッ*`;
-
-                        await client.sendMessage(from, {
-                            document: { url: targetFileUrl },
-                            mimetype: "video/mp4",
-                            fileName: cleanFileName,
-                            jpegThumbnail: await getThumbnailBuffer(movieDetails.image || selected.image),
-                            caption: finalCaption
-                        }, { quoted: dlMsg });
-
-                        await client.sendMessage(from, { react: { text: "✅", key: dlMsg.key } });
-
-                    } catch (dlErr) {
-                        console.error("Download execution failed:", dlErr.message);
-                        reply(`❌ An error occurred during file delivery: ${dlErr.message}`);
-                    }
+                        await _0xcl.sendMessage(from, { document: { url: _turl }, mimetype: _0x5a2b(13), fileName: _cfn, jpegThumbnail: await getThumbnailBuffer(_det.image || _sel.image), caption: _fcap }, { quoted: _dlmsg });
+                        await _0xcl.sendMessage(from, { react: { text: "✅", key: _dlmsg.key } });
+                    } catch (e) { reply(`❌ Error: ${e.message}`); }
                 };
-
-                client.ev.on("messages.upsert", downloadHandler);
-                
-                downloadTimeout = setTimeout(() => {
-                    client.ev.off("messages.upsert", downloadHandler);
-                }, 300000); // 5 Mins Session Timeout
-
-            } catch (detErr) {
-                console.error("Details execution failed:", detErr.message);
-                reply(`❌ An error occurred while loading details: ${detErr.message}`);
-            }
+                _0xcl.ev.on(_0x5a2b(9), _0xdlH); _0xt2 = setTimeout(() => { _0xcl.ev.off(_0x5a2b(9), _0xdlH); }, 300000);
+            } catch (e) { reply(`❌ Error: ${e.message}`); }
         };
-
-        client.ev.on("messages.upsert", detailsHandler);
-        
-        detailsTimeout = setTimeout(() => {
-            client.ev.off("messages.upsert", detailsHandler);
-        }, 300000); // 5 Mins Session Timeout
-
-    } catch (e) {
-        console.error("MLFBD Downloader error:", e.message);
-        await react("❌");
-        return reply(`❌ *Error Processing Request:* ${e.message}`);
-    }
+        _0xcl.ev.on(_0x5a2b(9), _0xdetH); _0xt1 = setTimeout(() => { _0xcl.ev.off(_0x5a2b(9), _0xdetH); }, 300000);
+    } catch (e) { await _0xreact("❌"); return reply(`❌ Error: ${e.message}`); }
 });
