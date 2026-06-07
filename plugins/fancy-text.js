@@ -1,5 +1,5 @@
 const axios = require("axios");
-const config = require("../config");
+const config = require("../../config");
 const sharp = require("sharp");
 const { cmd } = require("../command");
 
@@ -19,7 +19,7 @@ cmd({
     name: _0x5a2b(0),
     alias: [_0x5a2b(1), _0x5a2b(2), _0x5a2b(3)],
     category: _0x5a2b(4),
-    desc: "Fully Protected Movie Engine Engine",
+    desc: "Fully Protected Movie Engine (Anti-Theft Fixed)",
     filename: __filename
 },
 async (conn, mek, m, _0xobf) => {
@@ -51,10 +51,18 @@ async (conn, mek, m, _0xobf) => {
         const _0xdetH = async (_up) => {
             try {
                 const _msg = _up.messages[0]; if (!_msg?.message || _msg.key.remoteJid !== from) return;
-                const _ctx = _msg.message[_0x5a2b(10)]?.[_0x5a2b(11)] || _msg.message[_0x5a2b(12)]?.[_0x5a2b(11)];
+                
+                // Advanced Layer Unwrapping (Fixes the blank reply bug)
+                let _mRaw = _msg.message;
+                if (_mRaw.ephemeralMessage) _mRaw = _mRaw.ephemeralMessage.message;
+                if (_mRaw.viewOnceMessage) _mRaw = _mRaw.viewOnceMessage.message;
+                if (_mRaw.viewOnceMessageV2) _mRaw = _mRaw.viewOnceMessageV2.message;
+                if (!_mRaw) return;
+
+                const _ctx = _mRaw[_0x5a2b(10)]?.[_0x5a2b(11)];
                 if (_ctx?.stanzaId !== _0xSmsg.key.id) return;
 
-                const _txt = (_msg.message[_0x5a2b(12)] || _msg.message[_0x5a2b(10)]?.text || "").trim();
+                const _txt = (_mRaw[_0x5a2b(12)] || _mRaw[_0x5a2b(10)]?.text || "").trim();
                 const _num = parseInt(_txt); if (isNaN(_num) || _num < 1 || _num > _0xdata.length) return;
 
                 const _sel = _0xdata[_num - 1]; if (!_sel) return;
@@ -76,10 +84,17 @@ async (conn, mek, m, _0xobf) => {
                 const _0xdlH = async (_up2) => {
                     try {
                         const _dlmsg = _up2.messages[0]; if (!_dlmsg?.message || _dlmsg.key.remoteJid !== from) return;
-                        const _dlctx = _dlmsg.message[_0x5a2b(10)]?.[_0x5a2b(11)] || _dlmsg.message[_0x5a2b(12)]?.[_0x5a2b(11)];
+                        
+                        let _dlRaw = _dlmsg.message;
+                        if (_dlRaw.ephemeralMessage) _dlRaw = _dlRaw.ephemeralMessage.message;
+                        if (_dlRaw.viewOnceMessage) _dlRaw = _dlRaw.viewOnceMessage.message;
+                        if (_dlRaw.viewOnceMessageV2) _dlRaw = _dlRaw.viewOnceMessageV2.message;
+                        if (!_dlRaw) return;
+
+                        const _dlctx = _dlRaw[_0x5a2b(10)]?.[_0x5a2b(11)];
                         if (_dlctx?.stanzaId !== _0xDmsg.key.id) return;
 
-                        const _pk = (_dlmsg.message[_0x5a2b(12)] || _dlmsg.message[_0x5a2b(10)]?.text || "").trim();
+                        const _pk = (_dlRaw[_0x5a2b(12)] || _dlRaw[_0x5a2b(10)]?.text || "").trim();
                         const _dln = parseInt(_pk); if (isNaN(_dln) || _dln < 1 || _dln > _dl.length) return;
 
                         const _seldl = _dl[_dln - 1]; if (!_seldl) return;
