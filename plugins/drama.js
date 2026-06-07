@@ -1,75 +1,119 @@
-// ✅ Coded by DR KAMRAN for KAMRAN MD
-// ⚙️ API: https://jawad-tech.vercel.app/download/ytdl?url=
-
 const { cmd } = require('../command');
-const yts = require('yt-search');
 const axios = require('axios');
+const yts = require('yt-search');
+
+const AXIOS_DEFAULTS = { 
+    timeout: 60000, 
+    headers: { 'User-Agent': 'Mozilla/5.0' } 
+};
+
+async function getDownloadLink(url) {
+    try {
+        const api = `https://jawad-tech.vercel.app/download/ytdl?url=${encodeURIComponent(url)}`;
+        const res = await axios.get(api, AXIOS_DEFAULTS);
+
+        if (!res.data || !res.data.status || !res.data.result)
+            return null;
+
+        return res.data.result.mp4;
+    } catch (err) {
+        console.error("API Error:", err.message);
+        return null;
+    }
+}
 
 cmd({
     pattern: "drama",
-    alias: ["ytmp4", "video3"],
-    desc: "Download YouTube video (MP4)",
+    alias: ["epi"],
+    desc: "Download YouTube dramas only (≥15 min) by name",
     category: "download",
-    react: ",📺",
+    react: "🎬",
     filename: __filename
-}, async (conn, mek, m, { from, q, reply }) => {
+}, async (sock, message, m, { q, reply }) => {
     try {
-        if (!q) return await reply("🎥 Please provide a YouTube video name or URL!\n\nExample: `.ytv alone marshmello`");
+        if (!q) return reply("⚠️ Please provide a Drama Name or Video Title!");
 
-        let url = q;
-        let videoInfo = null;
+        if (q.includes("youtube.com/") || q.includes("youtu.be/")) 
+            return reply("❌ Links are not allowed. Please type the name only!");
 
-        // 🔍 Detect URL or search by title
-        if (q.startsWith('http://') || q.startsWith('https://')) {
-            if (!q.includes("youtube.com") && !q.includes("youtu.be")) {
-                return await reply("❌ Please provide a valid YouTube URL!");
+        const search = await yts(q);
+        const video = search.videos.find(v => v.seconds >= 900);
+        if (!video) return reply("❌ No suitable drama found (≥15 min)!");
+
+        const customName = "> *⚡ᴘᴏᴡᴇʀᴇᴅ ʙʏ DR KAMRAN⚡*";
+        const videoTitle = video.title;
+
+        const captionBox = `╭━〔 *YT DOWNLOADER* 〕━┈⊷
+┃ 🎬 *TITLE:* ${videoTitle}
+┃ ⏱️ *DURATION:* ${video.timestamp}
+┃ 👁️ *VIEWS:* ${video.views.toLocaleString()}
+┃ 📺 *CHANNEL:* ${video.author.name}
+╰━━━━━━━━━━━━━━━━┈⊷
+
+*ᴘʟᴇᴀsᴇ ʀᴇᴘʟʏ ᴡɪᴛʜ ᴀ ɴᴜᴍʙᴇʀ*
+(1) 📂 *ᴅᴏᴄᴜᴍᴇɴᴛ*
+(2) 🎥 *ᴠɪᴅᴇᴏ*
+
+${customName}`;
+
+        const sentMsg = await sock.sendMessage(message.chat, {
+            image: { url: video.thumbnail },
+            caption: captionBox
+        }, { quoted: message });
+
+        const listener = async (chatUpdate) => {
+            const msg = chatUpdate.messages[0];
+            if (!msg.message?.extendedTextMessage) return;
+
+            const selectedText = msg.message.extendedTextMessage.text.trim();
+            const context = msg.message.extendedTextMessage.contextInfo;
+            const isReplyToBot = context && context.stanzaId === sentMsg.key.id;
+            if (!isReplyToBot) return;
+
+            if (!["1","2"].includes(selectedText)) return;
+
+            await sock.sendMessage(message.chat, { 
+                react: { text: "⏳", key: msg.key } 
+            });
+
+            const dlUrl = await getDownloadLink(video.url);
+            if (!dlUrl) {
+                await sock.sendMessage(message.chat, { 
+                    react: { text: "❌", key: msg.key } 
+                });
+                return reply("❌ Error: Link could not be generated!");
             }
-            const videoId = getVideoId(q);
-            if (!videoId) return await reply("❌ Invalid YouTube URL!");
-            const searchFromUrl = await yts({ videoId });
-            videoInfo = searchFromUrl;
-        } else {
-            const search = await yts(q);
-            videoInfo = search.videos[0];
-            if (!videoInfo) return await reply("❌ No video results found!");
-            url = videoInfo.url;
-        }
 
-        // 🎯 Extract YouTube video ID
-        function getVideoId(url) {
-            const match = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
-            return match ? match[1] : null;
-        }
+            const response = await axios.get(dlUrl, { responseType: "arraybuffer" });
+            const buffer = Buffer.from(response.data);
 
-        // 🖼️ Send thumbnail + video info
-        await conn.sendMessage(from, {
-            image: { url: videoInfo.thumbnail },
-            caption: `*🎬 VIDEO DOWNLOADER*\n\n🎞️ *Title:* ${videoInfo.title}\n📺 *Channel:* ${videoInfo.author.name}\n🕒 *Duration:* ${videoInfo.timestamp}\n\n*Status:* Downloading Video...\n\n*© ᴘᴏᴡᴇʀᴇᴅ ʙʏ DR KAMRAN*`
-        }, { quoted: mek });
+            if (selectedText === "1") {
+                await sock.sendMessage(message.chat, {
+                    document: buffer,
+                    mimetype: "video/mp4",
+                    fileName: `${videoTitle}.mp4`,
+                    caption: `*${videoTitle}*`
+                }, { quoted: msg });
+            } else if (selectedText === "2") {
+                await sock.sendMessage(message.chat, {
+                    video: buffer,
+                    mimetype: "video/mp4",
+                    caption: `*${videoTitle}*\n\n${customName}`
+                }, { quoted: msg });
+            }
 
-        // ⚙️ Fetch from JawadTech API
-        const apiUrl = `https://jawad-tech.vercel.app/download/ytdl?url=${encodeURIComponent(url)}`;
-        const { data } = await axios.get(apiUrl);
+            await sock.sendMessage(message.chat, { 
+                react: { text: "✅", key: msg.key } 
+            });
 
-        if (!data?.status || !data?.result?.mp4) {
-            return await reply("❌ Failed to fetch download link! Try again later.");
-        }
+            sock.ev.off("messages.upsert", listener);
+        };
 
-        const vid = data.result;
-
-        // 📹 Send as video
-        await conn.sendMessage(from, {
-            video: { url: vid.mp4 },
-            caption: `🎬 *${vid.title}*\n\n*© ᴘᴏᴡᴇʀᴇᴅ ʙʏ DR KAMRAN*`
-        }, { quoted: mek });
-
-        // ✅ Success Reaction
-        await conn.sendMessage(from, { react: { text: '✅', key: m.key } });
+        sock.ev.on("messages.upsert", listener);
+        setTimeout(() => sock.ev.off("messages.upsert", listener), 120000);
 
     } catch (e) {
-        console.error("❌ Error in .ytv command:", e);
-        await reply("⚠️ Something went wrong! Try again later.");
-        await conn.sendMessage(from, { react: { text: '❌', key: m.key } });
+        console.error(e);
+        reply("❌ System error occurred.");
     }
 });
-
