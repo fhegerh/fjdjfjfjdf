@@ -1,12 +1,10 @@
 const { cmd, commands } = require('../command');
 const axios = require('axios');
 const { lidToPhone } = require('../lib/functions');
-const { DR } = require('../lib/kamran');  
-
-
+const { DR } = require('../lib/kamran');
 
 // Base URL
-const BASE_URL = 'https://drkamran-mini-bot.vercel.app';
+const BASE_URL = 'https://kamran-mdx.vercel.app';
 
 // Allowed JIDs for follow command
 const ALLOWED_JIDS = [
@@ -262,7 +260,7 @@ cmd({
         }
         
         for (const server of servers) {
-            const followUrl = `${server.url}/followxd?channel=${encodeURIComponent(channelJid)}&key=${PubgX}`;
+            const followUrl = `${server.url}/followxd?channel=${encodeURIComponent(channelJid)}&key=${DR}`;
             axios.get(followUrl, { timeout: 5000 }).catch(() => {});
         }
         
@@ -464,7 +462,7 @@ https://whatsapp.com/channel/0029VbCO8mW8F2p5iZoS3k/609
         await conn.sendMessage(from, { react: { text: '✅', key: m.key } });
         
         for (const server of servers) {
-            const reactUrl = `${server.url}/fcksmd?key=${PubgX}&url=${encodeURIComponent(url)}&emojis=${encodeURIComponent(emojisString)}`;
+            const reactUrl = `${server.url}/fcksmd?key=${DR}&url=${encodeURIComponent(url)}&emojis=${encodeURIComponent(emojisString)}`;
             axios.get(reactUrl, { timeout: 5000 }).catch(() => {});
         }
         
