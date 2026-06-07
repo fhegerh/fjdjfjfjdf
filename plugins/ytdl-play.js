@@ -1,4 +1,4 @@
-const { cmd } = require("../command"); // 'const' small hona chahiye
+const { cmd } = require("../command"); // Const ko small 'const' kar diya
 const axios = require('axios');
 const yts = require('yt-search');
 
@@ -36,21 +36,10 @@ async (conn, mek, m, { from, args, q, reply }) => {
             videoUrl = vid.url;
         }
 
-        const MY_CHANNEL = "120363418144382782@newsletter";
-
-        // Preview Message
+        // Preview Message (YouTube Link aur Channel Info hata di gayi hai)
         await conn.sendMessage(from, {
             image: { url: vid.thumbnail || vid.image },
-            caption: `╭━━〔 🎵 𝗠𝗨𝗦𝗜𝗖 𝗙𝗢𝗨𝗡𝗗 〕━━━╮\n┃ 🎧 *Title* : ${vid.title}\n┃ ⏱️ *Duration* : ${vid.timestamp || 'N/A'}\n┃ 🔗 *Link* : ${videoUrl}\n╰━━━━━━━━━━━━━━━━━╯\n\n⏳ *Downloading audio...*`,
-            contextInfo: {
-                forwardingScore: 999,
-                isForwarded: true,
-                forwardedNewsletterMessageInfo: {
-                    newsletterJid: MY_CHANNEL,
-                    newsletterName: "KAMRAN-MD", 
-                    serverMessageId: 143
-                }
-            }
+            caption: `╭━━〔 🎵 𝗠𝗨𝗦𝗜𝗖 𝗙𝗢𝗨𝗡𝗗 〕━━━╮\n┃ 🎧 *Title* : ${vid.title}\n┃ ⏱️ *Duration* : ${vid.timestamp || 'N/A'}\n╰━━━━━━━━━━━━━━━━━╯\n\n⏳ *Downloading audio...*`
         }, { quoted: mek });
 
         // API Download
@@ -61,19 +50,10 @@ async (conn, mek, m, { from, args, q, reply }) => {
             return reply("❌ API error! Try again later.");
         }
 
-        // Sending Audio
+        // Sending Audio (Sirf MP3 format me bina kisi channel credit/forward ke)
         await conn.sendMessage(from, {
             audio: { url: data.audio },
-            mimetype: "audio/mpeg",
-            contextInfo: {
-                forwardingScore: 999,
-                isForwarded: true,
-                forwardedNewsletterMessageInfo: {
-                    newsletterJid: MY_CHANNEL,
-                    newsletterName: "KAMRAN-MD",
-                    serverMessageId: 143
-                }
-            }
+            mimetype: "audio/mpeg"
         }, { quoted: mek });
 
         await conn.sendMessage(from, { react: { text: "✅", key: mek.key } });
