@@ -1,110 +1,154 @@
-// KAMRAN-MD 
+//---------------------------------------------------------------------------
+//           KAMRAN-MD - AI TEXT TO MEDIA (TXT2IMG / TXT2VID)
+//---------------------------------------------------------------------------
 
-const { cmd } = require("../command");
-const axios = require("axios");
+const { cmd } = require('../command');
+const axios = require('axios');
+const FormData = require('form-data');
+const config = require('../config');
+
+// Newsletter Context for professional branding
+const newsletterContext = {
+    forwardingScore: 999,
+    isForwarded: true,
+    forwardedNewsletterMessageInfo: {
+        newsletterJid: '120363418144382782@newsletter',
+        newsletterName: 'KAMRAN-MD',
+        serverMessageId: 143
+    }
+};
+
+const AgungDevX = {
+  config: {
+    base: 'https://text2video.aritek.app',
+    cipher: 'hbMcgZLlzvghRlLbPcTbCpfcQKM0PcU0zhPcTlOFMxBZ1oLmruzlVp9remPgi0QWP0QW',
+    shift: 3,
+    ua: 'AgungDevX Coder/1.0.0'
+  },
+
+  _decryptToken() {
+    const { cipher, shift } = this.config;
+    return [...cipher].map(c =>
+      /[a-z]/.test(c)
+        ? String.fromCharCode((c.charCodeAt(0) - 97 - shift + 26) % 26 + 97)
+        : /[A-Z]/.test(c)
+        ? String.fromCharCode((c.charCodeAt(0) - 65 - shift + 26) % 26 + 65)
+        : c
+    ).join('');
+  },
+
+  async text2img(prompt) {
+    if (!prompt) throw 'Prompt is empty';
+    const token = this._decryptToken();
+    const form = new FormData();
+    form.append('prompt', prompt);
+    form.append('token', token);
+
+    const { data } = await axios.post(
+      `${this.config.base}/text2img`,
+      form,
+      {
+        headers: {
+          'user-agent': this.config.ua,
+          authorization: token,
+          ...form.getHeaders()
+        }
+      }
+    );
+
+    if (data.code !== 0 || !data.url) throw 'Failed to generate image';
+    return data.url.trim();
+  },
+
+  async text2video(prompt) {
+    if (!prompt) throw 'Prompt is empty';
+    const token = this._decryptToken();
+    const payload = {
+      deviceID: Math.random().toString(16).slice(2) + Math.random().toString(16).slice(2),
+      isPremium: 1,
+      prompt,
+      used: [],
+      versionCode: 59
+    };
+
+    const resKey = await axios.post(
+      `${this.config.base}/txt2videov3`,
+      payload,
+      {
+        headers: {
+          'user-agent': this.config.ua,
+          authorization: token,
+          'content-type': 'application/json'
+        }
+      }
+    );
+
+    if (resKey.data.code !== 0 || !resKey.data.key) throw 'Failed to get video task';
+    const key = resKey.data.key;
+
+    for (let i = 0; i < 30; i++) {
+      const res = await axios.post(
+        `${this.config.base}/video`,
+        { keys: [key] },
+        { headers: { 'user-agent': this.config.ua, authorization: token } }
+      );
+
+      const v = res.data.datas?.[0];
+      if (v?.url) return v.url.trim();
+      await new Promise(r => setTimeout(r, 3000));
+    }
+    throw 'Video generation timeout';
+  }
+};
 
 cmd({
-    pattern: "img",
-    alias: ["image", "searchimg"],
-    react: "🫧",
-    desc: "Search and download images from various sources",
-    category: "other",
-    use: ".img2 <query>",
-    filename: __filename
-}, async (conn, mek, m, { reply, args, from }) => {
+    pattern: "txt2img",
+    alias: ["t2img", "img"],
+    desc: "Generate AI Image from text",
+    category: "ai",
+    react: "🎨",
+    filename: __filename,
+}, async (conn, mek, m, { from, text, reply }) => {
+    if (!text) return reply("🧠 *Txt Ai Image*\n\nExample: `.txt2img anime girl in forest` ");
+    
     try {
-        const query = args.join(" ");
-        if (!query) {
-            return reply("🖼️ Please provide a search query\nExample: .img KAMRAN-MD");
-        }
-
-        await reply(`🔍 Searching for "${query}"...`);
+        await conn.sendMessage(from, { react: { text: "⏳", key: mek.key } });
+        const img = await AgungDevX.text2img(text);
         
-        // Using the new API endpoint
-        const url = `https://jawad-tech.vercel.app/search/gimage?q=${encodeURIComponent(query)}`;
-        const response = await axios.get(url);
+        await conn.sendMessage(from, { 
+            image: { url: img }, 
+            caption: `*🎨 AI Image Generated*\n\n*Prompt:* ${text}\n\n*🚀 Powered by KAMRAN-MD*`,
+            contextInfo: newsletterContext
+        }, { quoted: mek });
         
-        // Validate response based on the provided JSON structure
-        if (!response.data?.status || !response.data.result?.length) {
-            return reply("❌ No images found. Try different keywords");
-        }
-        
-        const results = response.data.result;
-        
-        // Get 5 random images
-        const selectedImages = results
-            .sort(() => 0.5 - Math.random())
-            .slice(0, 5);
-        
-        for (const image of selectedImages) {
-            await conn.sendMessage(
-                from,
-                { 
-                    image: { url: image.url },
-                    caption: `*📷 Result for*: ${query}\n> *© Powered by KAMRAN-MD*`
-                },
-                { quoted: mek }
-            );
-            
-            // Add delay between sends to avoid rate limiting
-            await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-        
-    } catch (error) {
-        console.error('Image Search Error:', error);
-        reply(`❌ Error: ${error.message || "Failed to fetch images"}`);
+        await conn.sendMessage(from, { react: { text: "✅", key: mek.key } });
+    } catch (e) {
+        reply(`❌ Error: ${e}`);
     }
 });
 
 cmd({
-    pattern: "img2",
-    alias: ["image2", "searchimg2"],
-    react: "🫧",
-    desc: "Search and download images from various sources",
-    category: "other",
-    use: ".img <query>",
-    filename: __filename
-}, async (conn, mek, m, { reply, args, from }) => {
+    pattern: "txt2vid2",
+    alias: ["sora2", "aivideo3"],
+    desc: "Generate AI Video from text",
+    category: "ai",
+    react: "🎬",
+    filename: __filename,
+}, async (conn, mek, m, { from, text, reply }) => {
+    if (!text) return reply("🧠 *Txt Ai Video*\n\nExample: `.txt2vid cinematic sunset` ");
+    
     try {
-        const query = args.join(" ");
-        if (!query) {
-            return reply("🖼️ Please provide a search query\nExample: .img Imran KAMRAN-MD");
-        }
-
-        await reply(`🔍 Searching for "${query}"...`);
+        await conn.sendMessage(from, { react: { text: "⏳", key: mek.key } });
+        const vid = await AgungDevX.text2video(text);
         
-        // Using the provided API endpoint
-        const url = `https://api.hanggts.xyz/search/gimage?q=${encodeURIComponent(query)}`;
-        const response = await axios.get(url);
+        await conn.sendMessage(from, { 
+            video: { url: vid }, 
+            caption: `*🎬 AI Video Generated*\n\n*Prompt:* ${text}\n\n*🚀 Powered by KAMRAN-MD*`,
+            contextInfo: newsletterContext
+        }, { quoted: mek });
         
-        // Validate response
-        if (!response.data?.status || !response.data.result?.length) {
-            return reply("❌ No images found. Try different keywords");
-        }
-        
-        const results = response.data.result;
-        
-        // Get 5 random images
-        const selectedImages = results
-            .sort(() => 0.5 - Math.random())
-            .slice(0, 5);
-        
-        for (const image of selectedImages) {
-            await conn.sendMessage(
-                from,
-                { 
-                    image: { url: image.url },
-                    caption: `*📷 Result for*: ${query}\n> *© Powered by KAMRAN-MD*`
-                },
-                { quoted: mek }
-            );
-            
-            // Add delay between sends to avoid rate limiting
-            await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-        
-    } catch (error) {
-        console.error('Image Search Error:', error);
-        reply(`❌ Error: ${error.message || "Failed to fetch images"}`);
+        await conn.sendMessage(from, { react: { text: "✅", key: mek.key } });
+    } catch (e) {
+        reply(`❌ Error: ${e}`);
     }
 });
