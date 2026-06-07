@@ -23,7 +23,7 @@ cmd(
         
         // Determine pack name: use provided text or default from userConfig or global config
         // Get STICKER_NAME from userConfig if available, otherwise use config.STICKER_NAME
-        const defaultPackName = userConfig?.STICKER_NAME || config.STICKER_NAME || "Jawad TechX";
+        const defaultPackName = userConfig?.STICKER_NAME || config.STICKER_NAME || "DR KAMRAN";
         let pack = q ? q : defaultPackName;
         
         try {
