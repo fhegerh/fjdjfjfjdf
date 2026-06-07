@@ -3,6 +3,25 @@ const config = require('../config');
 const axios = require("axios");
 const sharp = require("sharp");
 
+// Encrypted core data to prevent copy-paste and name changing
+const _0xKMR = {
+    cr: "c2a9204b414d52414e2d4d494e492d424f5420e383bb", // © KAMRAN-MINI-BOT ッ
+    ak: "76616a6972612d3233696b7373696735312d31373830363531383733373637", // API Key
+    sApi: "68747470733a2f2f76616a6972612d6f6666696369616c2d617069732e76657263656c2e6170702f6170692f6d6f766965626f7873", // Search API
+    dApi: "68747470733a2f2f76616a6972612d6f6666696369616c2d617069732e76657263656c2e6170702f6170692f6d6f766965626f78646c73" // Download API
+};
+
+const _dec = (hex) => Buffer.from(hex, 'hex').toString('utf-8');
+
+// Integrity and Anti-Check Guard
+(() => {
+    const check = _dec(_0xKMR.cr);
+    if (!check.includes("KAMRAN") || !check.includes("MINI-BOT")) {
+        console.error("CRITICAL ERROR: Tampering detected in Bot ownership metadata! Stopping core process.");
+        process.exit(1);
+    }
+})();
+
 // Helper function to process high-compatibility jpeg thumbnails
 async function getThumbnailBuffer(url) {
   if (!url) return null;
@@ -26,11 +45,18 @@ cmd({
     filename: __filename
 },
 async (conn, mek, m, { from, quoted, body, isCmd, command, args, q, reply }) => {
-    const apiKey = "vajira-23ikssig51-1780651873767";
-    const searchApiUrl = `https://vajira-official-apis.vercel.app/api/movieboxs`;
-    const downloadApiUrl = `https://vajira-official-apis.vercel.app/api/movieboxdls`;
+    // Dynamic Runtime Verification
+    const botCredits = _dec(_0xKMR.cr);
+    if (!botCredits || botCredits.indexOf("KAMRAN") === -1) {
+        return reply("🚨 *Security Alert:* System modified illegally. Execution blocked.");
+    }
 
-    // Safe reaction helper for this framework
+    const apiKey = _dec(_0xKMR.ak);
+    const searchApiUrl = _dec(_0xKMR.sApi);
+    const downloadApiUrl = _dec(_0xKMR.dApi);
+    const footerText = `> *${botCredits}*`;
+
+    // Safe reaction helper
     const react = async (emoji) => {
         try { 
             await conn.sendMessage(from, { react: { text: emoji, key: mek.key } }); 
@@ -62,7 +88,6 @@ async (conn, mek, m, { from, quoted, body, isCmd, command, args, q, reply }) => 
             return reply("🛸 *API Error:* Server responded with an invalid status.");
         }
 
-        // Extracting array from 'data' or root level dynamically
         let results = null;
         if (response.data) {
             if (Array.isArray(response.data.data)) {
@@ -107,7 +132,7 @@ async (conn, mek, m, { from, quoted, body, isCmd, command, args, q, reply }) => 
 
         listText += `└─────────────────────────┘\n\n`;
         listText += `⚡ *Reply with the item number* to view options.\n\n`;
-        listText += `> *© KAMRAN-MINI-BOT ッ*`;
+        listText += footerText;
 
         const firstImage = results[0].image || results[0].poster || results[0].thumb || "https://placehold.co/600x400?text=No+Poster";
 
@@ -198,7 +223,7 @@ async (conn, mek, m, { from, quoted, body, isCmd, command, args, q, reply }) => 
                 });
 
                 cap += `⚡ *Reply with a mirror number* to start downloading.\n\n`;
-                cap += `> *© KAMRAN-MINI-BOT ッ*`;
+                cap += footerText;
 
                 const detailImg = movieDetails.image || movieDetails.poster || selected.image || "https://placehold.co/600x400?text=No+Poster";
 
@@ -256,7 +281,7 @@ async (conn, mek, m, { from, quoted, body, isCmd, command, args, q, reply }) => 
                         finalCaption += `│ 🌟 *Quality:* ${selectedDl.quality || 'HD'}\n`;
                         finalCaption += `│ ⚖️ *Size:* ${selectedDl.size || 'N/A'}\n`;
                         finalCaption += `╰───────────────────◆\n\n`;
-                        finalCaption += `> *© KAMRAN-MINI-BOT ッ*`;
+                        finalCaption += footerText;
 
                         const thumbBuffer = await getThumbnailBuffer(movieDetails.image || movieDetails.poster || selected.image);
                         
