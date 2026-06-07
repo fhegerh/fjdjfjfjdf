@@ -1,16 +1,7 @@
+const { cmd } = require('../command');
+const config = require('../config');
 const axios = require("axios");
-const config = require("../../config");
 const sharp = require("sharp");
-const { cmd } = require("../command"); 
-
-// Secure Encrypted Data Dictionary
-const _0xmbx = [
-    "dmFqaXJhLTIzaWtzc2lnNTEtMTc4MDY1MTg3Mzc2Nw==", // 0: API Key
-    "aHR0cHM6Ly92YWppcmEtb2ZmaWNpYWwtYXBpcy52ZXJjZWwuYXBwL2FwaS9tb3ZpZWJveHM=", // 1: Search Endpoint
-    "aHR0cHM6Ly92YWppcmEtb2ZmaWNpYWwtYXBpcy52ZXJjZWwuYXBwL2FwaS9tb3ZpZWJveGRscw==", // 2: Download Endpoint
-    "bWVzc2FnZXMudXBzZXJ0" // 3: Event Listener
-];
-const _0xdec = (i) => Buffer.from(_0xmbx[i], "base64").toString("utf-8");
 
 // Helper function to process high-compatibility jpeg thumbnails
 async function getThumbnailBuffer(url) {
@@ -28,15 +19,25 @@ async function getThumbnailBuffer(url) {
 }
 
 cmd({
-    pattern: "moviebox", // Changed from name to pattern
+    pattern: "moviebox",
     alias: ["mbox", "movieboxdl"],
     category: "downloader",
     desc: "Search and download movies/series from MovieBox via API",
     filename: __filename
 },
-async (conn, mek, m, context) => {
-    const { reply, react, q, socket, sock, from } = context;
-    const client = socket || sock || conn;
+async (conn, mek, m, { from, quoted, body, isCmd, command, args, q, reply }) => {
+    const apiKey = "vajira-23ikssig51-1780651873767";
+    const searchApiUrl = `https://vajira-official-apis.vercel.app/api/movieboxs`;
+    const downloadApiUrl = `https://vajira-official-apis.vercel.app/api/movieboxdls`;
+
+    // Safe reaction helper for this framework
+    const react = async (emoji) => {
+        try { 
+            await conn.sendMessage(from, { react: { text: emoji, key: mek.key } }); 
+        } catch (e) { 
+            console.error("Reaction failed:", e); 
+        }
+    };
 
     try {
         await react("🎬");
@@ -51,8 +52,8 @@ async (conn, mek, m, context) => {
 
         await reply(`🔍 _Searching for *"${q}"* on MovieBox servers..._`);
 
-        const response = await axios.get(_0xdec(1), {
-            params: { apikey: _0xdec(0), query: q, text: q },
+        const response = await axios.get(searchApiUrl, {
+            params: { apikey: apiKey, query: q, text: q },
             timeout: 30000
         });
 
@@ -61,6 +62,7 @@ async (conn, mek, m, context) => {
             return reply("🛸 *API Error:* Server responded with an invalid status.");
         }
 
+        // Extracting array from 'data' or root level dynamically
         let results = null;
         if (response.data) {
             if (Array.isArray(response.data.data)) {
@@ -89,6 +91,7 @@ async (conn, mek, m, context) => {
             return reply(`🛸 *Parsing Error:* API format changed. Please contact developer.`);
         }
 
+        // Stylish MovieBox Search List Layout
         let listText = `┏━━━━━━━━━━━━━━━━━━━━━━━━┓\n`;
         listText += `┃ 🎬  *MOVIEBOX SEARCH* 🎬 ┃\n`;
         listText += `┗━━━━━━━━━━━━━━━━━━━━━━━━┛\n\n`;
@@ -108,7 +111,7 @@ async (conn, mek, m, context) => {
 
         const firstImage = results[0].image || results[0].poster || results[0].thumb || "https://placehold.co/600x400?text=No+Poster";
 
-        const sentSearch = await client.sendMessage(from, {
+        const sentSearch = await conn.sendMessage(from, {
             image: { url: firstImage },
             caption: listText
         }, { quoted: mek });
@@ -122,30 +125,24 @@ async (conn, mek, m, context) => {
                 const msg = update.messages[0];
                 if (!msg?.message || msg.key.remoteJid !== from) return;
 
-                let rawMsg = msg.message;
-                if (rawMsg.ephemeralMessage) rawMsg = rawMsg.ephemeralMessage.message;
-                if (rawMsg.viewOnceMessage) rawMsg = rawMsg.viewOnceMessage.message;
-                if (rawMsg.viewOnceMessageV2) rawMsg = rawMsg.viewOnceMessageV2.message;
-                if (!rawMsg) return;
-
-                const ctx = rawMsg.extendedTextMessage?.contextInfo;
+                const ctx = msg.message.extendedTextMessage?.contextInfo || msg.message.conversation?.contextInfo;
                 if (ctx?.stanzaId !== searchMsgId) return;
 
-                const choice = (rawMsg.conversation || rawMsg.extendedTextMessage?.text || "").trim();
+                const choice = (msg.message.conversation || msg.message.extendedTextMessage?.text || "").trim();
                 const num = parseInt(choice);
                 if (isNaN(num) || num < 1 || num > results.length) return;
                 
                 const selected = results[num - 1];
                 if (!selected) return;
 
-                client.ev.off(_0xdec(3), detailsHandler);
+                conn.ev.off("messages.upsert", detailsHandler);
                 clearTimeout(detailsTimeout);
 
                 await react("⏳");
 
-                const detailResponse = await axios.get(_0xdec(2), {
+                const detailResponse = await axios.get(downloadApiUrl, {
                     params: { 
-                        apikey: _0xdec(0), 
+                        apikey: apiKey, 
                         subjectId: selected.subjectId || selected.id || selected.subject_id, 
                         detailPath: selected.detailPath || selected.path || selected.detail_path,
                         season: 0,
@@ -205,7 +202,7 @@ async (conn, mek, m, context) => {
 
                 const detailImg = movieDetails.image || movieDetails.poster || selected.image || "https://placehold.co/600x400?text=No+Poster";
 
-                const sentDetail = await client.sendMessage(from, {
+                const sentDetail = await conn.sendMessage(from, {
                     image: { url: detailImg },
                     caption: cap
                 }, { quoted: msg });
@@ -218,26 +215,20 @@ async (conn, mek, m, context) => {
                         const dlMsg = up.messages[0];
                         if (!dlMsg?.message || dlMsg.key.remoteJid !== from) return;
 
-                        let dlRaw = dlMsg.message;
-                        if (dlRaw.ephemeralMessage) dlRaw = dlRaw.ephemeralMessage.message;
-                        if (dlRaw.viewOnceMessage) dlRaw = dlRaw.viewOnceMessage.message;
-                        if (dlRaw.viewOnceMessageV2) dlRaw = dlRaw.viewOnceMessageV2.message;
-                        if (!dlRaw) return;
-
-                        const dlCtx = dlRaw.extendedTextMessage?.contextInfo;
+                        const dlCtx = dlMsg.message.extendedTextMessage?.contextInfo || dlMsg.message.conversation?.contextInfo;
                         if (dlCtx?.stanzaId !== detailMsgId) return;
 
-                        const pick = (dlRaw.conversation || dlRaw.extendedTextMessage?.text || "").trim();
+                        const pick = (dlMsg.message.conversation || dlMsg.message.extendedTextMessage?.text || "").trim();
                         const dlNum = parseInt(pick);
                         if (isNaN(dlNum) || dlNum < 1 || dlNum > dlLinks.length) return;
 
                         const selectedDl = dlLinks[dlNum - 1];
                         if (!selectedDl) return;
 
-                        client.ev.off(_0xdec(3), downloadHandler);
+                        conn.ev.off("messages.upsert", downloadHandler);
                         clearTimeout(downloadTimeout);
 
-                        await client.sendMessage(from, { react: { text: "📥", key: dlMsg.key } });
+                        await conn.sendMessage(from, { react: { text: "📥", key: dlMsg.key } });
                         
                         let targetFileUrl = selectedDl.direct || selectedDl.url || selectedDl.link || selectedDl.download || selectedDl.file;
                         
@@ -280,31 +271,33 @@ async (conn, mek, m, context) => {
                             documentPayload.jpegThumbnail = thumbBuffer;
                         }
 
-                        await client.sendMessage(from, documentPayload, { quoted: dlMsg });
-                        await client.sendMessage(from, { react: { text: "✅", key: dlMsg.key } });
+                        await conn.sendMessage(from, documentPayload, { quoted: dlMsg });
+                        await conn.sendMessage(from, { react: { text: "✅", key: dlMsg.key } });
 
                     } catch (dlErr) {
+                        conn.ev.off("messages.upsert", downloadHandler);
                         console.error("MovieBox download failed:", dlErr.message);
                         reply(`❌ An error occurred during file delivery: ${dlErr.message}`);
                     }
                 };
 
-                client.ev.on(_0xdec(3), downloadHandler);
+                conn.ev.on("messages.upsert", downloadHandler);
                 
                 downloadTimeout = setTimeout(() => {
-                    client.ev.off(_0xdec(3), downloadHandler);
+                    conn.ev.off("messages.upsert", downloadHandler);
                 }, 300000);
 
             } catch (detErr) {
+                conn.ev.off("messages.upsert", detailsHandler);
                 console.error("MovieBox details failed:", detErr.message);
                 reply(`❌ An error occurred while loading details: ${detErr.message}`);
             }
         };
 
-        client.ev.on(_0xdec(3), detailsHandler);
+        conn.ev.on("messages.upsert", detailsHandler);
         
         detailsTimeout = setTimeout(() => {
-            client.ev.off(_0xdec(3), detailsHandler);
+            conn.ev.off("messages.upsert", detailsHandler);
         }, 300000);
 
     } catch (e) {
