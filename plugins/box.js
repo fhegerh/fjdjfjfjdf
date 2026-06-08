@@ -3,36 +3,36 @@ const config = require('../config');
 const axios = require("axios");
 const sharp = require("sharp");
 
-// Encrypted core data to prevent copy-paste and name changing
-const _0xKMR = {
-    cr: "c2a9204b414d52414e2d4d494e492d424f5420e383bb", // © KAMRAN-MINI-BOT ッ
-    ak: "76616a6972612d3233696b7373696735312d31373830363531383733373637", // API Key
-    sApi: "68747470733a2f2f76616a6972612d6f6666696369616c2d617069732e76657263656c2e6170702f6170692f6d6f766965626f7873", // Search API
-    dApi: "68747470733a2f2f76616a6972612d6f6666696369616c2d617069732e76657263656c2e6170702f6170692f6d6f766965626f78646c73" // Download API
-};
+// 🔒 HIGH-LEVEL OBFUSCATED DATA STORAGEMATRIX
+const _0xKMRMatrix = [
+    "76616a6972612d353871727936307237332d31373830393335353033343034", // 0: API Key
+    "68747470733a2f2f76616a6972612d6f6666696369616c2d617069732e76657263656c2e6170702f6170692f6d6f766965626f7873", // 1: Search API
+    "68747470733a2f2f76616a6972612d6f6666696369616c2d617069732e76657263656c2e6170702f6170692f6d6f766965626f78646c73", // 2: Download API
+    "c2a9204b414d52414e2d4d494e492d424f5420e383bb", // 3: Credits
+    "6d657373616765732e757073657274", // 4: messages.upsert
+    "73656e644d657373616765", // 5: sendMessage
+    "657874656e6465645465787454657373616765", // 6: extendedTextMessage
+    "636f6e74657874496e666f", // 7: contextInfo
+    "6172726179627566666572" // 8: arraybuffer
+];
 
-const _dec = (hex) => Buffer.from(hex, 'hex').toString('utf-8');
+const _0xR = (idx) => Buffer.from(_0xKMRMatrix[idx], 'hex').toString('utf-8');
 
-// Integrity and Anti-Check Guard
+// 🛡️ IMMEDIATE INTEGRITY CORE GUARD
 (() => {
-    const check = _dec(_0xKMR.cr);
-    if (!check.includes("KAMRAN") || !check.includes("MINI-BOT")) {
-        console.error("CRITICAL ERROR: Tampering detected in Bot ownership metadata! Stopping core process.");
+    const verification = _0xR(3);
+    if (!verification.includes("KAMRAN") || !verification.includes("MINI-BOT") || _0xKMRMatrix.length !== 9) {
+        console.error("⚠️ SYSTEM SUSPENDED: Source code alteration or piracy detected.");
         process.exit(1);
     }
 })();
 
-// Helper function to process high-compatibility jpeg thumbnails
 async function getThumbnailBuffer(url) {
   if (!url) return null;
   try {
-    const { data } = await axios.get(url, { responseType: "arraybuffer" });
-    return await sharp(data)
-      .resize(300, 300)
-      .jpeg({ quality: 80 })
-      .toBuffer();
+    const { data } = await axios.get(url, { responseType: _0xR(8) });
+    return await sharp(data).resize(300, 300).jpeg({ quality: 80 }).toBuffer();
   } catch (err) {
-    console.error("Error processing thumbnail:", err.message || err);
     return null;
   }
 }
@@ -44,42 +44,27 @@ cmd({
     desc: "Search and download movies/series from MovieBox via API",
     filename: __filename
 },
-async (conn, mek, m, { from, quoted, body, isCmd, command, args, q, reply }) => {
-    // Dynamic Runtime Verification
-    const botCredits = _dec(_0xKMR.cr);
-    if (!botCredits || botCredits.indexOf("KAMRAN") === -1) {
-        return reply("🚨 *Security Alert:* System modified illegally. Execution blocked.");
-    }
+async (conn, mek, m, { from, q, reply }) => {
+    const sysCredit = _0xR(3);
+    if (!sysCredit.includes("KAMRAN")) return reply("🚨 Structural bypass locked.");
 
-    const apiKey = _dec(_0xKMR.ak);
-    const searchApiUrl = _dec(_0xKMR.sApi);
-    const downloadApiUrl = _dec(_0xKMR.dApi);
-    const footerText = `> *${botCredits}*`;
+    const activeKey = _0xR(0);
+    const apiSrc = _0xR(1);
+    const apiDl = _0xR(2);
+    const signFooter = `> *${sysCredit}*`;
 
-    // Safe reaction helper
     const react = async (emoji) => {
-        try { 
-            await conn.sendMessage(from, { react: { text: emoji, key: mek.key } }); 
-        } catch (e) { 
-            console.error("Reaction failed:", e); 
-        }
+        try { await conn.sendMessage(from, { react: { text: emoji, key: mek.key } }); } catch (e) {}
     };
 
     try {
         await react("🎬");
-
-        if (!q) {
-            return reply(
-                "❌ *Opps! Title Missing* ❌\n\n" +
-                "Please provide a movie or series name to search!\n" +
-                "📌 *Example:* `.moviebox Interstellar`"
-            );
-        }
+        if (!q) return reply("❌ *Opps! Title Missing* ❌\n\nPlease provide a movie name!\n📌 *Example:* `.moviebox Interstellar`");
 
         await reply(`🔍 _Searching for *"${q}"* on MovieBox servers..._`);
 
-        const response = await axios.get(searchApiUrl, {
-            params: { apikey: apiKey, query: q, text: q },
+        const response = await axios.get(apiSrc, {
+            params: { apikey: activeKey, query: q, text: q },
             timeout: 30000
         });
 
@@ -90,57 +75,35 @@ async (conn, mek, m, { from, quoted, body, isCmd, command, args, q, reply }) => 
 
         let results = null;
         if (response.data) {
-            if (Array.isArray(response.data.data)) {
-                results = response.data.data;
-            } else if (typeof response.data.data === 'object' && response.data.data !== null) {
-                for (let key in response.data.data) {
-                    if (Array.isArray(response.data.data[key])) {
-                        results = response.data.data[key];
-                        break;
-                    }
+            if (Array.isArray(response.data.data)) results = response.data.data;
+            else if (typeof response.data.data === 'object' && response.data.data !== null) {
+                for (let k in response.data.data) {
+                    if (Array.isArray(response.data.data[k])) { results = response.data.data[k]; break; }
                 }
             }
-            
-            if (!results) {
-                results = response.data.result || response.data.results || response.data.list || (Array.isArray(response.data) ? response.data : null);
-            }
+            if (!results) results = response.data.result || response.data.results || response.data.list || (Array.isArray(response.data) ? response.data : null);
         }
 
         if (results && Array.isArray(results) && results.length === 0) {
             await react("❌");
-            return reply(`🛸 *No Results Found!*\nMovieBox par *"${q}"* naam ki koi movie nahi mili. Kripya sahi naam likhein.`);
+            return reply(`🛸 *No Results Found!*\nMovieBox par *"${q}"* nahi mila.`);
         }
 
         if (!results || !Array.isArray(results)) {
             await react("❌");
-            return reply(`🛸 *Parsing Error:* API format changed. Please contact developer.`);
+            return reply(`🛸 *Parsing Error:* System format upgraded.`);
         }
 
-        // Stylish MovieBox Search List Layout
-        let listText = `┏━━━━━━━━━━━━━━━━━━━━━━━━┓\n`;
-        listText += `┃ 🎬  *MOVIEBOX SEARCH* 🎬 ┃\n`;
-        listText += `┗━━━━━━━━━━━━━━━━━━━━━━━━┛\n\n`;
-        listText += `🔎 *Query:* \`${q.toUpperCase()}\`\n`;
-        listText += `✨ *Results Found:* ${results.length}\n\n`;
-        listText += `┌─────────────────────────┐\n`;
-
+        let listText = `┏━━━━━━━━━━━━━━━━━━━━━━━━┓\n┃ 🎬  *MOVIEBOX SEARCH* 🎬 ┃\n┗━━━━━━━━━━━━━━━━━━━━━━━━┛\n\n🔎 *Query:* \`${q.toUpperCase()}\`\n✨ *Results Found:* ${results.length}\n\n┌─────────────────────────┐\n`;
         results.forEach((v, i) => {
-            listText += `│ 🍿 *[${i + 1}]* _${v.title || v.name || 'Unknown Title'}_\n`;
-            listText += `│ └─ 📅 *Type/Year:* ${v.type || 'Movie'} | ${v.year || 'N/A'}\n`;
+            listText += `│ 🍿 *[${i + 1}]* _${v.title || v.name || 'Unknown Title'}_\n│ └─ 📅 *Type/Year:* ${v.type || 'Movie'} | ${v.year || 'N/A'}\n`;
             if (i !== results.length - 1) listText += `├─────────────────────────┤\n`;
         });
-
-        listText += `└─────────────────────────┘\n\n`;
-        listText += `⚡ *Reply with the item number* to view options.\n\n`;
-        listText += footerText;
+        listText += `└─────────────────────────┘\n\n⚡ *Reply with the item number* to view options.\n\n${signFooter}`;
 
         const firstImage = results[0].image || results[0].poster || results[0].thumb || "https://placehold.co/600x400?text=No+Poster";
-
-        const sentSearch = await conn.sendMessage(from, {
-            image: { url: firstImage },
-            caption: listText
-        }, { quoted: mek });
-
+        const sentSearch = await conn[_0xR(5)](from, { image: { url: firstImage }, caption: listText }, { quoted: mek });
+        
         const searchMsgId = sentSearch.key.id;
         let detailsTimeout, downloadTimeout;
 
@@ -150,88 +113,55 @@ async (conn, mek, m, { from, quoted, body, isCmd, command, args, q, reply }) => 
                 const msg = update.messages[0];
                 if (!msg?.message || msg.key.remoteJid !== from) return;
 
-                const ctx = msg.message.extendedTextMessage?.contextInfo || msg.message.conversation?.contextInfo;
+                const ctx = msg.message[_0xR(6)]?.contextInfo || msg.message.conversation?.contextInfo || msg.message.extendedTextMessage?.contextInfo;
                 if (ctx?.stanzaId !== searchMsgId) return;
 
-                const choice = (msg.message.conversation || msg.message.extendedTextMessage?.text || "").trim();
+                const choice = (msg.message.conversation || msg.message[_0xR(6)]?.text || "").trim();
                 const num = parseInt(choice);
                 if (isNaN(num) || num < 1 || num > results.length) return;
                 
                 const selected = results[num - 1];
                 if (!selected) return;
 
-                conn.ev.off("messages.upsert", detailsHandler);
+                conn.ev.off(_0xR(4), detailsHandler);
                 clearTimeout(detailsTimeout);
-
                 await react("⏳");
 
-                const detailResponse = await axios.get(downloadApiUrl, {
-                    params: { 
-                        apikey: apiKey, 
-                        subjectId: selected.subjectId || selected.id || selected.subject_id, 
-                        detailPath: selected.detailPath || selected.path || selected.detail_path,
-                        season: 0,
-                        episode: 0
-                    },
+                const detailResponse = await axios.get(apiDl, {
+                    params: { apikey: activeKey, subjectId: selected.subjectId || selected.id || selected.subject_id, detailPath: selected.detailPath || selected.path || selected.detail_path, season: 0, episode: 0 },
                     timeout: 30000
                 });
 
                 if (detailResponse.status !== 200 || !detailResponse.data) {
                     await react("❌");
-                    return reply("❌ *Error:* Failed to pull download properties for this item.");
+                    return reply("❌ *Error:* Failed to pull properties.");
                 }
 
                 const movieDetails = detailResponse.data.data || detailResponse.data.result || detailResponse.data;
-                
                 let dlLinks = [];
                 if (movieDetails) {
                     if (Array.isArray(movieDetails.downloads)) dlLinks = movieDetails.downloads;
                     else if (Array.isArray(movieDetails.streams)) dlLinks = movieDetails.streams;
                     else if (Array.isArray(movieDetails.links)) dlLinks = movieDetails.links;
-                    else if (typeof movieDetails === 'object') {
-                        for (let key in movieDetails) {
-                            if (Array.isArray(movieDetails[key])) {
-                                dlLinks = movieDetails[key];
-                                break;
-                            }
-                        }
-                    }
                 }
 
                 if (dlLinks.length === 0) {
                     await react("❌");
-                    return reply("❌ *Sorry:* No downloadable mirrors were located for this selection.");
+                    return reply("❌ *Sorry:* No download configurations mapped.");
                 }
 
-                let cap = `╭──────────────◆\n`;
-                cap += `│ 🎥 *${movieDetails.title || selected.title || selected.name}*\n`;
-                cap += `╰──────────────◆\n\n`;
-                cap += `🎭 *Type:* \`${movieDetails.type || 'Movie'}\`\n`;
-                cap += `📅 *Year:* ${movieDetails.year || 'N/A'}\n\n`;
-                if (movieDetails.description) {
-                    cap += `📝 *Description:* \n_${movieDetails.description}_\n\n`;
-                }
-                
-                cap += `┏───────────────────────┓\n`;
-                cap += `│   💾  AVAILABLE MIRRORS   │\n`;
-                cap += `┗───────────────────────┛\n`;
+                let cap = `╭──────────────◆\n│ 🎥 *${movieDetails.title || selected.title || selected.name}*\n╰──────────────◆\n\n🎭 *Type:* \`${movieDetails.type || 'Movie'}\`\n📅 *Year:* ${movieDetails.year || 'N/A'}\n\n`;
+                if (movieDetails.description) cap += `📝 *Description:* \n_${movieDetails.description}_\n\n`;
+                cap += `┏───────────────────────┓\n│   💾  AVAILABLE MIRRORS   │\n┗───────────────────────┛\n`;
                 
                 dlLinks.forEach((dl, i) => {
-                    cap += `╭─ 📥 *[${i + 1}]* Mirror ${i + 1}\n`;
-                    cap += `├─ 🌟 *Quality:* \`${dl.quality || 'HD'}\`\n`;
-                    cap += `╰─ ⚖️ *Size:* \`${dl.size || 'Unknown'}\`\n\n`;
+                    cap += `╭─ 📥 *[${i + 1}]* Mirror ${i + 1}\n├─ 🌟 *Quality:* \`${dl.quality || 'HD'}\`\n╰─ ⚖️ *Size:* \`${dl.size || 'Unknown'}\`\n\n`;
                 });
-
-                cap += `⚡ *Reply with a mirror number* to start downloading.\n\n`;
-                cap += footerText;
+                cap += `⚡ *Reply with a mirror number* to start downloading.\n\n${signFooter}`;
 
                 const detailImg = movieDetails.image || movieDetails.poster || selected.image || "https://placehold.co/600x400?text=No+Poster";
-
-                const sentDetail = await conn.sendMessage(from, {
-                    image: { url: detailImg },
-                    caption: cap
-                }, { quoted: msg });
-
+                const sentDetail = await conn[_0xR(5)](from, { image: { url: detailImg }, caption: cap }, { quoted: msg });
+                
                 const detailMsgId = sentDetail.key.id;
 
                 // ================= INTERACTIVE STEP: DOWNLOAD HANDLER =================
@@ -240,93 +170,64 @@ async (conn, mek, m, { from, quoted, body, isCmd, command, args, q, reply }) => 
                         const dlMsg = up.messages[0];
                         if (!dlMsg?.message || dlMsg.key.remoteJid !== from) return;
 
-                        const dlCtx = dlMsg.message.extendedTextMessage?.contextInfo || dlMsg.message.conversation?.contextInfo;
+                        const dlCtx = dlMsg.message[_0xR(6)]?.contextInfo || dlMsg.message.conversation?.contextInfo || dlMsg.message.extendedTextMessage?.contextInfo;
                         if (dlCtx?.stanzaId !== detailMsgId) return;
 
-                        const pick = (dlMsg.message.conversation || dlMsg.message.extendedTextMessage?.text || "").trim();
+                        const pick = (dlMsg.message.conversation || dlMsg.message[_0xR(6)]?.text || "").trim();
                         const dlNum = parseInt(pick);
                         if (isNaN(dlNum) || dlNum < 1 || dlNum > dlLinks.length) return;
 
                         const selectedDl = dlLinks[dlNum - 1];
                         if (!selectedDl) return;
 
-                        conn.ev.off("messages.upsert", downloadHandler);
+                        conn.ev.off(_0xR(4), downloadHandler);
                         clearTimeout(downloadTimeout);
 
-                        await conn.sendMessage(from, { react: { text: "📥", key: dlMsg.key } });
+                        await conn[_0xR(5)](from, { react: { text: "📥", key: dlMsg.key } });
                         
                         let targetFileUrl = selectedDl.direct || selectedDl.url || selectedDl.link || selectedDl.download || selectedDl.file;
-                        
                         if (!targetFileUrl && typeof selectedDl === 'object') {
                             for (let key in selectedDl) {
                                 if (typeof selectedDl[key] === 'string' && (selectedDl[key].startsWith('http://') || selectedDl[key].startsWith('https://'))) {
-                                    targetFileUrl = selectedDl[key];
-                                    break;
+                                    targetFileUrl = selectedDl[key]; break;
                                 }
                             }
                         }
 
                         if (!targetFileUrl) {
                             await react("❌");
-                            return reply("❌ *Error:* Direct download link could not be resolved from this mirror.");
+                            return reply("❌ *Error:* Direct routing failed.");
                         }
 
                         const cleanFileName = `${(movieDetails.title || selected.title || selected.name || "Movie").replace(/[^a-zA-Z0-9 ]/g, "_")}_${selectedDl.quality || 'HD'}.mp4`;
-
                         await reply(`🚀 *Processing MovieBox File...* \nUploading document. Please wait!`);
 
-                        let finalCaption = `╭───────────────────◆\n`;
-                        finalCaption += `│ 🎬 *${movieDetails.title || selected.title || selected.name}*\n`;
-                        finalCaption += `├───────────────────◆\n`;
-                        finalCaption += `│ 🌟 *Quality:* ${selectedDl.quality || 'HD'}\n`;
-                        finalCaption += `│ ⚖️ *Size:* ${selectedDl.size || 'N/A'}\n`;
-                        finalCaption += `╰───────────────────◆\n\n`;
-                        finalCaption += footerText;
-
+                        let finalCaption = `╭───────────────────◆\n│ 🎬 *${movieDetails.title || selected.title || selected.name}*\n├───────────────────◆\n│ 🌟 *Quality:* ${selectedDl.quality || 'HD'}\n│ ⚖️ *Size:* ${selectedDl.size || 'N/A'}\n╰───────────────────◆\n\n${signFooter}`;
                         const thumbBuffer = await getThumbnailBuffer(movieDetails.image || movieDetails.poster || selected.image);
                         
-                        let documentPayload = {
-                            document: { url: targetFileUrl },
-                            mimetype: "video/mp4",
-                            fileName: cleanFileName,
-                            caption: finalCaption
-                        };
+                        let documentPayload = { document: { url: targetFileUrl }, mimetype: "video/mp4", fileName: cleanFileName, caption: finalCaption };
+                        if (thumbBuffer && Buffer.isBuffer(thumbBuffer)) documentPayload.jpegThumbnail = thumbBuffer;
 
-                        if (thumbBuffer && Buffer.isBuffer(thumbBuffer)) {
-                            documentPayload.jpegThumbnail = thumbBuffer;
-                        }
-
-                        await conn.sendMessage(from, documentPayload, { quoted: dlMsg });
-                        await conn.sendMessage(from, { react: { text: "✅", key: dlMsg.key } });
+                        await conn[_0xR(5)](from, documentPayload, { quoted: dlMsg });
+                        await conn[_0xR(5)](from, { react: { text: "✅", key: dlMsg.key } });
 
                     } catch (dlErr) {
-                        conn.ev.off("messages.upsert", downloadHandler);
-                        console.error("MovieBox download failed:", dlErr.message);
-                        reply(`❌ An error occurred during file delivery: ${dlErr.message}`);
+                        conn.ev.off(_0xR(4), downloadHandler);
                     }
                 };
 
-                conn.ev.on("messages.upsert", downloadHandler);
-                
-                downloadTimeout = setTimeout(() => {
-                    conn.ev.off("messages.upsert", downloadHandler);
-                }, 300000);
+                conn.ev.on(_0xR(4), downloadHandler);
+                downloadTimeout = setTimeout(() => { conn.ev.off(_0xR(4), downloadHandler); }, 300000);
 
             } catch (detErr) {
-                conn.ev.off("messages.upsert", detailsHandler);
-                console.error("MovieBox details failed:", detErr.message);
-                reply(`❌ An error occurred while loading details: ${detErr.message}`);
+                conn.ev.off(_0xR(4), detailsHandler);
             }
         };
 
-        conn.ev.on("messages.upsert", detailsHandler);
-        
-        detailsTimeout = setTimeout(() => {
-            conn.ev.off("messages.upsert", detailsHandler);
-        }, 300000);
+        conn.ev.on(_0xR(4), detailsHandler);
+        detailsTimeout = setTimeout(() => { conn.ev.off(_0xR(4), detailsHandler); }, 300000);
 
     } catch (e) {
-        console.error("MovieBox Downloader error:", e.message);
         await react("❌");
         return reply(`❌ *Error Processing Request:* ${e.message}`);
     }
