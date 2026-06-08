@@ -3,7 +3,7 @@ const config = require('../config');
 const axios = require("axios");
 const sharp = require("sharp");
 
-// 🔒 HIGH-LEVEL OBFUSCATED DATA STORAGE MATRIX (FIXED)
+// 🔒 HIGH-LEVEL OBFUSCATED DATA STORAGE MATRIX
 const _0xKMRMatrix = [
     "76616a6972612d353871727936307237332d31373830393335353033343034", // 0: API Key
     "68747470733a2f2f76616a6972612d6f6666696369616c2d617069732e76657263656c2e6170702f6170692f6d6f766965626f7873", // 1: Search API
@@ -11,7 +11,7 @@ const _0xKMRMatrix = [
     "c2a9204b414d52414e2d4d494e492d424f5420e383bb", // 3: Credits
     "6d657373616765732e757073657274", // 4: messages.upsert
     "73656e644d657373616765", // 5: sendMessage
-    "657874656e646564546578744d657373616765", // 6: extendedTextMessage [FIXED CRITICAL TYPO]
+    "657874656e646564546578744d657373616765", // 6: extendedTextMessage
     "636f6e74657874496e666f", // 7: contextInfo
     "6172726179627566666572" // 8: arraybuffer
 ];
@@ -28,9 +28,9 @@ const _0xR = (idx) => Buffer.from(_0xKMRMatrix[idx], 'hex').toString('utf-8');
 })();
 
 async function getThumbnailBuffer(url) {
-  if (!url) return null;
+  if (!url || typeof url !== 'string' || !url.startsWith('http')) return null;
   try {
-    const { data } = await axios.get(url, { responseType: _0xR(8) });
+    const { data } = await axios.get(url, { responseType: _0xR(8), timeout: 10000 });
     return await sharp(data).resize(300, 300).jpeg({ quality: 80 }).toBuffer();
   } catch (err) {
     return null;
@@ -94,7 +94,6 @@ async (conn, mek, m, { from, q, reply }) => {
             return reply(`🛸 *Parsing Error:* System format upgraded.`);
         }
 
-        // ✨ ULTRA-CLEAN NON-SHATTERING MOBILE LAYOUT ✨
         let listText = `🎬 *============= MOVIEBOX SEARCH =============* 🎬\n\n`;
         listText += `🔎 *Query:* \`${q.toUpperCase()}\`\n`;
         listText += `✨ *Results Found:* ${results.length}\n\n`;
@@ -108,9 +107,10 @@ async (conn, mek, m, { from, q, reply }) => {
 
         listText += `\n⚡ *Reply with the item number* to view options.\n\n${signFooter}`;
 
-        const firstImage = results[0].image || results[0].poster || results[0].thumb || "https://placehold.co/600x400?text=No+Poster";
-        const sentSearch = await conn[_0xR(5)](from, { image: { url: firstImage }, caption: listText }, { quoted: mek });
+        // Deep-scan for first screen image
+        const firstImage = results[0].image || results[0].img || results[0].poster || results[0].thumbnail || results[0].thumb || "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=600";
         
+        const sentSearch = await conn[_0xR(5)](from, { image: { url: firstImage }, caption: listText }, { quoted: mek });
         const searchMsgId = sentSearch.key.id;
         let detailsTimeout, downloadTimeout;
 
@@ -173,9 +173,10 @@ async (conn, mek, m, { from, q, reply }) => {
                 });
                 cap += `\n⚡ *Reply with a mirror number* to start downloading.\n\n${signFooter}`;
 
-                const detailImg = movieDetails.image || movieDetails.poster || selected.image || "https://placehold.co/600x400?text=No+Poster";
+                // 🌟 FIX: Multi-Layer Deep Scan Fallback for Detail Image
+                const detailImg = movieDetails.image || movieDetails.img || movieDetails.poster || movieDetails.thumbnail || movieDetails.thumb || selected.image || selected.img || selected.poster || selected.thumbnail || selected.thumb || "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=600";
+
                 const sentDetail = await conn[_0xR(5)](from, { image: { url: detailImg }, caption: cap }, { quoted: msg });
-                
                 const detailMsgId = sentDetail.key.id;
 
                 // ================= INTERACTIVE STEP: DOWNLOAD HANDLER =================
@@ -222,7 +223,9 @@ async (conn, mek, m, { from, q, reply }) => {
                         finalCaption += `⚖️ *Size:* ${selectedDl.size || 'N/A'}\n`;
                         finalCaption += `───────────────────────────────\n\n${signFooter}`;
                         
-                        const thumbBuffer = await getThumbnailBuffer(movieDetails.image || movieDetails.poster || selected.image);
+                        // 🌟 Same Advanced Fallback for document thumbnail buffer
+                        const targetThumbUrl = movieDetails.image || movieDetails.img || movieDetails.poster || selected.image || selected.img || selected.poster;
+                        const thumbBuffer = await getThumbnailBuffer(targetThumbUrl);
                         
                         let documentPayload = { document: { url: targetFileUrl }, mimetype: "video/mp4", fileName: cleanFileName, caption: finalCaption };
                         if (thumbBuffer && Buffer.isBuffer(thumbBuffer)) documentPayload.jpegThumbnail = thumbBuffer;
