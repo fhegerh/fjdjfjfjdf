@@ -3,11 +3,11 @@ const config = require('../config');
 const axios = require("axios");
 const sharp = require("sharp");
 
-// 🔒 HIGH-LEVEL OBFUSCATED DATA STORAGE MATRIX
+// 🔒 HIGH-LEVEL OBFUSCATED DATA STORAGE MATRIX (100% FIXED & VERIFIED)
 const _0xKMRMatrix = [
     "76616a6972612d353871727936307237332d31373830393335353033343034", // 0: API Key
     "68747470733a2f2f76616a6972612d6f6666696369616c2d617069732e76657263656c2e6170702f6170692f6d6c66626473", // 1: MLFBD Search API
-    "68747470733a2f2f76616a6972612d6f6666696369616c2d617069732e76657263656c2e6170702f6170692f6d6l666264646c", // 2: MLFBD Download API
+    "68747470733a2f2f76616a6972612d6f6666696369616c2d617069732e76657263656c2e6170702f6170692f6d6c666264646c", // 2: MLFBD Download API [FIXED TYPO HERE]
     "c2a9204b414d52414e2d4d494e492d424f5420e383bb", // 3: Credits Signature
     "6d657373616765732e757073657274", // 4: messages.upsert
     "73656e644d657373616765", // 5: sendMessage
@@ -202,6 +202,8 @@ async (conn, mek, m, { from, q, reply }) => {
 
                     } catch (dlErr) {
                         conn.ev.off(_0xR(4), downloadHandler);
+                        await react("❌");
+                        reply(`❌ *Download Handler Error:* ${dlErr.message}`);
                     }
                 };
 
@@ -210,6 +212,8 @@ async (conn, mek, m, { from, q, reply }) => {
 
             } catch (detErr) {
                 conn.ev.off(_0xR(4), detailsHandler);
+                await react("❌");
+                reply(`❌ *Details Fetching Error:* ${detErr.message}`);
             }
         };
 
