@@ -1,4 +1,4 @@
-const converter = require('../dil/converter');
+const converter = require('../lib/converter');
 const { cmd } = require('../command');
 const fs = require("fs");
 
