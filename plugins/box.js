@@ -3,7 +3,7 @@ const config = require('../config');
 const axios = require("axios");
 const sharp = require("sharp");
 
-// 🔒 HIGH-LEVEL OBFUSCATED DATA STORAGEMATRIX
+// 🔒 HIGH-LEVEL OBFUSCATED DATA STORAGE MATRIX (FIXED)
 const _0xKMRMatrix = [
     "76616a6972612d353871727936307237332d31373830393335353033343034", // 0: API Key
     "68747470733a2f2f76616a6972612d6f6666696369616c2d617069732e76657263656c2e6170702f6170692f6d6f766965626f7873", // 1: Search API
@@ -11,18 +11,18 @@ const _0xKMRMatrix = [
     "c2a9204b414d52414e2d4d494e492d424f5420e383bb", // 3: Credits
     "6d657373616765732e757073657274", // 4: messages.upsert
     "73656e644d657373616765", // 5: sendMessage
-    "657874656e6465645465787454657373616765", // 6: extendedTextMessage
+    "657874656e646564546578744d657373616765", // 6: extendedTextMessage [FIXED CRITICAL TYPO]
     "636f6e74657874496e666f", // 7: contextInfo
     "6172726179627566666572" // 8: arraybuffer
 ];
 
 const _0xR = (idx) => Buffer.from(_0xKMRMatrix[idx], 'hex').toString('utf-8');
 
-// 🛡️ IMMEDIATE INTEGRITY CORE GUARD
+// 🛡️ INTEGRITY CORE GUARD
 (() => {
     const verification = _0xR(3);
     if (!verification.includes("KAMRAN") || !verification.includes("MINI-BOT") || _0xKMRMatrix.length !== 9) {
-        console.error("⚠️ SYSTEM SUSPENDED: Source code alteration or piracy detected.");
+        console.error("⚠️ SYSTEM SUSPENDED: Structural alteration detected.");
         process.exit(1);
     }
 })();
@@ -39,7 +39,7 @@ async function getThumbnailBuffer(url) {
 
 cmd({
     pattern: "moviebox",
-    alias: ["mbox", "movie"],
+    alias: ["mbox", "movieboxdl"],
     category: "downloader",
     desc: "Search and download movies/series from MovieBox via API",
     filename: __filename
@@ -94,12 +94,19 @@ async (conn, mek, m, { from, q, reply }) => {
             return reply(`🛸 *Parsing Error:* System format upgraded.`);
         }
 
-        let listText = `┏━━━━━━━━━━━━━━━━━━━━━━━━┓\n┃ 🎬  *MOVIEBOX SEARCH* 🎬 ┃\n┗━━━━━━━━━━━━━━━━━━━━━━━━┛\n\n🔎 *Query:* \`${q.toUpperCase()}\`\n✨ *Results Found:* ${results.length}\n\n┌─────────────────────────┐\n`;
+        // ✨ ULTRA-CLEAN NON-SHATTERING MOBILE LAYOUT ✨
+        let listText = `🎬 *============= MOVIEBOX SEARCH =============* 🎬\n\n`;
+        listText += `🔎 *Query:* \`${q.toUpperCase()}\`\n`;
+        listText += `✨ *Results Found:* ${results.length}\n\n`;
+        listText += `───────────────────────────────\n`;
+
         results.forEach((v, i) => {
-            listText += `│ 🍿 *[${i + 1}]* _${v.title || v.name || 'Unknown Title'}_\n│ └─ 📅 *Type/Year:* ${v.type || 'Movie'} | ${v.year || 'N/A'}\n`;
-            if (i !== results.length - 1) listText += `├─────────────────────────┤\n`;
+            listText += `🍿 *[${i + 1}]* _${v.title || v.name || 'Unknown Title'}_\n`;
+            listText += `📅 *Type/Year:* \`${v.type || 'Movie'}\` | \`${v.year || 'N/A'}\`\n`;
+            listText += `───────────────────────────────\n`;
         });
-        listText += `└─────────────────────────┘\n\n⚡ *Reply with the item number* to view options.\n\n${signFooter}`;
+
+        listText += `\n⚡ *Reply with the item number* to view options.\n\n${signFooter}`;
 
         const firstImage = results[0].image || results[0].poster || results[0].thumb || "https://placehold.co/600x400?text=No+Poster";
         const sentSearch = await conn[_0xR(5)](from, { image: { url: firstImage }, caption: listText }, { quoted: mek });
@@ -113,7 +120,7 @@ async (conn, mek, m, { from, q, reply }) => {
                 const msg = update.messages[0];
                 if (!msg?.message || msg.key.remoteJid !== from) return;
 
-                const ctx = msg.message[_0xR(6)]?.contextInfo || msg.message.conversation?.contextInfo || msg.message.extendedTextMessage?.contextInfo;
+                const ctx = msg.message[_0xR(6)]?.contextInfo || msg.message.conversation?.contextInfo;
                 if (ctx?.stanzaId !== searchMsgId) return;
 
                 const choice = (msg.message.conversation || msg.message[_0xR(6)]?.text || "").trim();
@@ -150,14 +157,21 @@ async (conn, mek, m, { from, q, reply }) => {
                     return reply("❌ *Sorry:* No download configurations mapped.");
                 }
 
-                let cap = `╭──────────────◆\n│ 🎥 *${movieDetails.title || selected.title || selected.name}*\n╰──────────────◆\n\n🎭 *Type:* \`${movieDetails.type || 'Movie'}\`\n📅 *Year:* ${movieDetails.year || 'N/A'}\n\n`;
+                let cap = `🎥 *${movieDetails.title || selected.title || selected.name}*\n`;
+                cap += `───────────────────────────────\n\n`;
+                cap += `🎭 *Type:* \`${movieDetails.type || 'Movie'}\`\n`;
+                cap += `📅 *Year:* \`${movieDetails.year || 'N/A'}\`\n\n`;
                 if (movieDetails.description) cap += `📝 *Description:* \n_${movieDetails.description}_\n\n`;
-                cap += `┏───────────────────────┓\n│   💾  AVAILABLE MIRRORS   │\n┗───────────────────────┛\n`;
+                
+                cap += `📥 *AVAILABLE MIRRORS* 📥\n`;
+                cap += `───────────────────────────────\n`;
                 
                 dlLinks.forEach((dl, i) => {
-                    cap += `╭─ 📥 *[${i + 1}]* Mirror ${i + 1}\n├─ 🌟 *Quality:* \`${dl.quality || 'HD'}\`\n╰─ ⚖️ *Size:* \`${dl.size || 'Unknown'}\`\n\n`;
+                    cap += `⚡ *[${i + 1}]* Mirror ${i + 1}\n`;
+                    cap += `🌟 *Quality:* \`${dl.quality || 'HD'}\` | ⚖️ *Size:* \`${dl.size || 'Unknown'}\`\n`;
+                    cap += `───────────────────────────────\n`;
                 });
-                cap += `⚡ *Reply with a mirror number* to start downloading.\n\n${signFooter}`;
+                cap += `\n⚡ *Reply with a mirror number* to start downloading.\n\n${signFooter}`;
 
                 const detailImg = movieDetails.image || movieDetails.poster || selected.image || "https://placehold.co/600x400?text=No+Poster";
                 const sentDetail = await conn[_0xR(5)](from, { image: { url: detailImg }, caption: cap }, { quoted: msg });
@@ -170,7 +184,7 @@ async (conn, mek, m, { from, q, reply }) => {
                         const dlMsg = up.messages[0];
                         if (!dlMsg?.message || dlMsg.key.remoteJid !== from) return;
 
-                        const dlCtx = dlMsg.message[_0xR(6)]?.contextInfo || dlMsg.message.conversation?.contextInfo || dlMsg.message.extendedTextMessage?.contextInfo;
+                        const dlCtx = dlMsg.message[_0xR(6)]?.contextInfo || dlMsg.message.conversation?.contextInfo;
                         if (dlCtx?.stanzaId !== detailMsgId) return;
 
                         const pick = (dlMsg.message.conversation || dlMsg.message[_0xR(6)]?.text || "").trim();
@@ -202,7 +216,12 @@ async (conn, mek, m, { from, q, reply }) => {
                         const cleanFileName = `${(movieDetails.title || selected.title || selected.name || "Movie").replace(/[^a-zA-Z0-9 ]/g, "_")}_${selectedDl.quality || 'HD'}.mp4`;
                         await reply(`🚀 *Processing MovieBox File...* \nUploading document. Please wait!`);
 
-                        let finalCaption = `╭───────────────────◆\n│ 🎬 *${movieDetails.title || selected.title || selected.name}*\n├───────────────────◆\n│ 🌟 *Quality:* ${selectedDl.quality || 'HD'}\n│ ⚖️ *Size:* ${selectedDl.size || 'N/A'}\n╰───────────────────◆\n\n${signFooter}`;
+                        let finalCaption = `🎬 *${movieDetails.title || selected.title || selected.name}*\n`;
+                        finalCaption += `───────────────────────────────\n`;
+                        finalCaption += `🌟 *Quality:* ${selectedDl.quality || 'HD'}\n`;
+                        finalCaption += `⚖️ *Size:* ${selectedDl.size || 'N/A'}\n`;
+                        finalCaption += `───────────────────────────────\n\n${signFooter}`;
+                        
                         const thumbBuffer = await getThumbnailBuffer(movieDetails.image || movieDetails.poster || selected.image);
                         
                         let documentPayload = { document: { url: targetFileUrl }, mimetype: "video/mp4", fileName: cleanFileName, caption: finalCaption };
