@@ -2,7 +2,7 @@ const { cmd } = require("../command");
 const axios = require("axios"); // Axios library ka hona zaroori hai
 
 cmd({
-    pattern: "loli", // Is command ko run karne ke liye `.neko` likhna hoga
+    pattern: "random", // Is command ko run karne ke liye `.neko` likhna hoga
     desc: "Get random anime neko images.",
     category: "anime",
     filename: __filename
