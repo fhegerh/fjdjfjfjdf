@@ -23,7 +23,7 @@ async (conn, mek, m, { from, quoted, body, isCmd, command, args, q, reply }) => 
             // WhatsApp par image send karne ka standard tarika
             await conn.sendMessage(from, { 
                 image: { url: imageUrl }, 
-                caption: "✨ *Here is your Neko Image!* ✨\n\n> Powered by Prince API" 
+                caption: "✨ *Here is your Neko Image!* ✨\n\n> Powered by DR KAMRAN" 
             }, { quoted: mek });
             
         } else {
