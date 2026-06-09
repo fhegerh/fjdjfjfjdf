@@ -47,9 +47,12 @@ async (conn, mek, m, { from, q, reply }) => {
             return reply("❌ *Opps! URL Missing* ❌\n\nPlease provide a valid video link!\n📌 *Example:* `.xnxx https://...`");
         }
 
+        // Clean link string and remove spaces
+        const targetUrl = q.trim();
+
         // 🛡️ ANTI-CRASH URL VALIDATION LAYER
         const urlPattern = /^(https?:\/\/)?(www\.)?([a-zA-Z0-9\-]+\.)+[a-zA-Z]{2,}(\/.*)?$/;
-        if (!urlPattern.test(q) || !q.includes("xnxx")) {
+        if (!urlPattern.test(targetUrl) || !targetUrl.includes("xnxx")) {
             await react("❌");
             return reply("❌ *Invalid Link Format!* \n\nThis is a downloader command, text search is not supported here. Please provide a direct XNXX video link.\n📌 *Example:* `.xnxx https://www.xnxx.com/video-xxxx/`");
         }
@@ -59,26 +62,24 @@ async (conn, mek, m, { from, q, reply }) => {
 
         // Fetching data from the API
         const response = await axios.get(apiDl, {
-            params: { apikey: activeKey, url: q },
+            params: { apikey: activeKey, url: targetUrl },
             timeout: 45000
         });
 
-        if (response.status !== 200 || !response.data || !response.data.result) {
-            await react("❌");
-            return reply("❌ *API Error:* Failed to retrieve content data for this link.");
-        }
+        // 🛠️ DUAL-STRUCTURE PARSER ENGINE (Auto-checks nested & flat responses)
+        const data = response.data?.result || response.data;
+        const videoUrl = data?.url || data?.dl_link || data?.direct || data?.link || data?.low || data?.high;
 
-        const data = response.data.result;
+        if (response.status !== 200 || !data || !videoUrl) {
+            await react("❌");
+            // Pulling custom error message from API if available
+            const apiErrMsg = response.data?.message || response.data?.msg || response.data?.error || "Failed to retrieve content data. The link might be invalid or expired.";
+            return reply(`❌ *API Error:* ${apiErrMsg}`);
+        }
         
         // Mapped variables from API response
-        const videoUrl = data.url || data.dl_link || data.direct || data.link || data.low || data.high;
         const videoTitle = data.title || "XNXX_Video";
         const videoDuration = data.duration || "N/A";
-
-        if (!videoUrl) {
-            await react("❌");
-            return reply("❌ *Error:* Download link could not be generated from the API response.");
-        }
 
         await reply(`🎬 *Downloading:* \`${videoTitle}\`\n⏳ *Duration:* \`${videoDuration}\`\n\n_Uploading document file..._`);
 
@@ -98,9 +99,8 @@ async (conn, mek, m, { from, q, reply }) => {
 
     } catch (e) {
         await react("❌");
-        // Enhanced Error Catcher for Server Drops
         if (e.response && e.response.status === 500) {
-            return reply("❌ *Server Side Error (500):* The API server could not process this link. Please make sure the link is fully functional and try again.");
+            return reply("❌ *Server Side Error (500):* API server responds with an internal failure. Try a different video link.");
         }
         return reply(`❌ *Error Processing Request:* ${e.message}`);
     }
