@@ -53,7 +53,7 @@ async (conn, mek, m, { from, args, q, reply }) => {
     // 4. Request Gemini AI API
     const conversationId = global.gemsesi[sender]?.id || ''
     const res = await fetch(
-      `https://fgsi.dpdns.org/api/ai/gemini?apikey=APIKEY_MU&text=${encodeURIComponent(q)}&url=${encodeURIComponent(img)}&conversationId=${conversationId}&language=&modeSearch=`
+      `https://fgsi.dpdns.org/api/ai/gemini?apikey=fgsiapi-36cd2f79-6d&text=${encodeURIComponent(q)}&url=${encodeURIComponent(img)}&conversationId=${conversationId}&language=&modeSearch=`
     )
     const json = await res.json()
 
