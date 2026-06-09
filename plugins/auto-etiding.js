@@ -1,126 +1,105 @@
-/***
- *** ᠁᠁᠁᠁᠁᠁᠁᠁᠁᠁᠁᠁᠁
- *** - Dev: FongsiDev
- *** - Contact: t.me/dashmodz
- *** - Gmail: fongsiapi@gmail.com & fgsidev@neko2.net
- *** - Saluran WhatsApp: whatsapp.com/channel/0029VapkSr45q08hPPPVqy26
- *** - Telegram Group: t.me/fongsidev
- *** - Github: github.com/Fgsi-APIs/RestAPIs/issues/new
- *** - Website: fgsi.koyeb.app
- *** ᠁᠁᠁᠁᠁᠁᠁᠁᠁᠁᠁᠁᠁
- ***/
-// Scraper By Fgsi | Integrated into Command Format
+const _0x4f12 = ["../command", "axios", "cheerio", "form-data", "fs", "path", "https://flatai.org/wp-admin/admin-ajax.php", "https://flatai.org/edit-image-with-text-ai/", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36", "ai_image_editor_nonce", "Gagal ambil nonce dari halaman", "existsSync", "statSync", "Image too large. Max 10MB.", "action", "ai_image_editor_image", "nonce", "prompt", "image_file", "createReadStream", "basename", "extname", "slice", "png", "post", "getHeaders", "success", "editedImageUrl", "API gagal: ", "stringify", "editimg", "flatai", "aimage", "editai", "ai", "🎨", "❌ Please provide a prompt! Example: `.editimg make it a zombie`", "imageMessage", "type", "mtype", "msg", "mimetype", "startsWith", "image/", "quoted", "mime", "❌ Please reply to an image or send an image with the command/caption!", "⏳", "sendMessage", "🔄 Processing your image with AI... Please wait standard loading time.", "join", "__dirname", "temp_", ".jpg", "writeFileSync", "@whiskeysockets/baileys", "downloadContentFromMessage", "@adiwajshing/baileys", "message", "concat", "downloadAndSaveMediaMessage", "download", "❌ Error: Could not download the image.", "width", "height", "N/A", "seed", "unlinkSync", "✅", "❌ Error: "];
+const _0x51ab = function(_0x2c1a) { return _0x4f12[_0x2c1a]; };
 
-const { cmd } = require("../command");
-const axios = require('axios');
-const cheerio = require('cheerio');
-const FormData = require('form-data');
-const fs = require('fs');
-const path = require('path');
+const { cmd } = require(_0x51ab(0));
+const _0x1a2b = require(_0x51ab(1));
+const _0x3c4d = require(_0x51ab(2));
+const _0x5e6f = require(_0x51ab(3));
+const _0x7a8b = require(_0x51ab(4));
+const _0x9c0d = require(_0x51ab(5));
 
-const AJAX_URL = 'https://flatai.org/wp-admin/admin-ajax.php';
-const PAGE_URL = 'https://flatai.org/edit-image-with-text-ai/';
-const USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36';
-
-// Flatai Scraper Class
-class FlataiImageEditor {
+class _0x2f4a {
   constructor() {
-    this.nonce = null;
-    this.http = axios.create({
+    this[_0x51ab(16)] = null;
+    this.http = _0x1a2b.create({
       headers: {
-        'User-Agent': USER_AGENT,
+        'User-Agent': _0x51ab(8),
         'Origin': 'https://flatai.org',
-        'Referer': PAGE_URL,
+        'Referer': _0x51ab(7),
       },
       timeout: 120000,
     });
   }
 
   async refreshNonce() {
-    const { data: html } = await this.http.get(PAGE_URL);
-    const $ = cheerio.load(html);
-    const script = $('script:contains("ai_image_editor_nonce")').first().text();
+    const { data: html } = await this.http.get(_0x51ab(7));
+    const $ = _0x3c4d.load(html);
+    const script = $('script:contains("' + _0x51ab(9) + '")').first().text();
     const match = script.match(/ai_image_editor_nonce["']:\s*["']([^"']+)/);
-    if (match) this.nonce = match[1];
-    else throw new Error('Gagal ambil nonce dari halaman');
-    return this.nonce;
+    if (match) this[_0x51ab(16)] = match[1];
+    else throw new Error(_0x51ab(10));
+    return this[_0x51ab(16)];
   }
 
   async edit(imagePath, prompt) {
-    if (!fs.existsSync(imagePath)) throw new Error(`File not found: ${imagePath}`);
-    const stat = fs.statSync(imagePath);
-    if (stat.size > 10 * 1024 * 1024) throw new Error(`Image too large. Max 10MB.`);
+    if (!_0x7a8b[_0x51ab(11)](imagePath)) throw new Error('File not found: ' + imagePath);
+    const stat = _0x7a8b[_0x51ab(12)](imagePath);
+    if (stat.size > 10 * 1024 * 1024) throw new Error(_0x51ab(13));
 
     await this.refreshNonce();
 
-    const fd = new FormData();
-    fd.append('action', 'ai_image_editor_image');
-    fd.append('nonce', this.nonce);
-    fd.append('prompt', prompt);
-    fd.append('image_file', fs.createReadStream(imagePath), {
-      filename: path.basename(imagePath),
-      contentType: `image/${path.extname(imagePath).slice(1) || 'png'}`,
+    const fd = new _0x5e6f();
+    fd.append(_0x51ab(14), _0x51ab(15));
+    fd.append(_0x51ab(16), this[_0x51ab(16)]);
+    fd.append(_0x51ab(17), prompt);
+    fd.append(_0x51ab(18), _0x7a8b[_0x51ab(19)](imagePath), {
+      filename: _0x9c0d[_0x51ab(20)](imagePath),
+      contentType: 'image/' + (_0x9c0d[_0x51ab(21)](imagePath)[_0x51ab(22)](1) || _0x51ab(23)),
     });
 
-    const { data } = await this.http.post(AJAX_URL, fd, {
-      headers: fd.getHeaders(),
+    const { data } = await this.http.post(_0x51ab(6), fd, {
+      headers: fd[_0x51ab(25)](),
       maxContentLength: Infinity,
       maxBodyLength: Infinity,
     });
 
-    if (!data.success || !data.data?.editedImageUrl) {
-      throw new Error(`API gagal: ${JSON.stringify(data)}`);
+    if (!data[_0x51ab(26)] || !data.data?.[_0x51ab(27)]) {
+      throw new Error(_0x51ab(28) + JSON[_0x51ab(29)](data));
     }
 
     return data.data;
   }
 }
 
-// WhatsApp Bot Command
 cmd({
-    pattern: "editimg",
-    alias: ["flatai", "aimage", "editai"],
+    pattern: _0x51ab(30),
+    alias: [_0x51ab(31), _0x51ab(32), _0x51ab(33)],
     desc: "Edit an image using AI prompt.",
-    category: "ai",
-    react: "🎨",
+    category: _0x51ab(34),
+    react: _0x51ab(35),
     filename: __filename
 },
 async (conn, mek, m, { from, args, q, reply }) => {
     try {
-        // 1. Check if prompt is given
-        if (!q) return reply("❌ Please provide a prompt! Example: `.editimg make it a zombie`");
+        if (!q) return reply(_0x51ab(36));
 
-        // 2. Image Detection Logic
-        const isImage = m.type === 'imageMessage' || 
-                        m.mtype === 'imageMessage' || 
-                        (m.msg && m.msg.mimetype && m.msg.mimetype.startsWith('image/'));
+        const isImage = m.type === _0x51ab(37) || 
+                        m.mtype === _0x51ab(37) || 
+                        (m.msg && m.msg.mimetype && m.msg.mimetype[_0x51ab(42)](_0x51ab(43)));
 
         const isQuotedImage = m.quoted ? (
-                        m.quoted.type === 'imageMessage' || 
-                        m.quoted.mtype === 'imageMessage' || 
-                        (m.quoted.msg && m.quoted.msg.mimetype && m.quoted.msg.mimetype.startsWith('image/')) ||
-                        (m.quoted.mime && m.quoted.mime.startsWith('image/'))
+                        m.quoted.type === _0x51ab(37) || 
+                        m.quoted.mtype === _0x51ab(37) || 
+                        (m.quoted.msg && m.quoted.msg.mimetype && m.quoted.msg.mimetype[_0x51ab(42)](_0x51ab(43))) ||
+                        (m.quoted.mime && m.quoted.mime[_0x51ab(42)](_0x51ab(43)))
         ) : false;
 
         if (!isImage && !isQuotedImage) {
-            return reply("❌ Please reply to an image or send an image with the command/caption!");
+            return reply(_0x51ab(46));
         }
 
-        // Processing Reaction
-        await conn.sendMessage(from, { react: { text: "⏳", key: mek.key } });
-        reply("🔄 Processing your image with AI... Please wait standard loading time.");
+        await conn[_0x51ab(48)](from, { react: { text: _0x51ab(47), key: mek.key } });
+        reply(_0x51ab(49));
 
-        // 3. MANUAL DOWNLAODER (Bypassing the broken obfuscated function)
-        let mediaPath = path.join(__dirname, `temp_${Date.now()}.jpg`);
+        let mediaPath = _0x9c0d[_0x51ab(50)](_0x51ab(51), _0x51ab(52) + Date.now() + _0x51ab(53));
         let buffer;
         
         try {
-            // Dynamic Baileys import to extract stream directly
             let downloadContentFromMessage;
             try {
-                downloadContentFromMessage = require('@whiskeysockets/baileys').downloadContentFromMessage;
+                downloadContentFromMessage = require(_0x51ab(55))[_0x51ab(56)];
             } catch {
-                downloadContentFromMessage = require('@adiwajshing/baileys').downloadContentFromMessage;
+                downloadContentFromMessage = require(_0x51ab(57))[_0x51ab(56)];
             }
 
             const target = m.quoted ? m.quoted : m;
@@ -133,41 +112,37 @@ async (conn, mek, m, { from, args, q, reply }) => {
             for await (const chunk of stream) {
                 chunks.push(chunk);
             }
-            buffer = Buffer.concat(chunks);
-            fs.writeFileSync(mediaPath, buffer);
+            buffer = Buffer[_0x51ab(59)](chunks);
+            _0x7a8b[_0x51ab(54)](mediaPath, buffer);
 
         } catch (manualError) {
-            // Framework Fallback if manual method fails
             const targetMessage = m.quoted ? m.quoted : m;
-            if (conn.downloadAndSaveMediaMessage) {
-                mediaPath = await conn.downloadAndSaveMediaMessage(targetMessage);
-            } else if (targetMessage.download) {
-                const buf = await targetMessage.download();
-                fs.writeFileSync(mediaPath, buf);
+            if (conn[_0x51ab(60)]) {
+                mediaPath = await conn[_0x51ab(60)](targetMessage);
+            } else if (targetMessage[_0x51ab(61)]) {
+                const buf = await targetMessage[_0x51ab(61)]();
+                _0x7a8b[_0x51ab(54)](mediaPath, buf);
             } else {
-                return reply("❌ Error: Could not download the image.");
+                return reply(_0x51ab(62));
             }
         }
 
-        // 4. Run the Flatai Scraper Logic
-        const editor = new FlataiImageEditor();
+        const editor = new _0x2f4a();
         const result = await editor.edit(mediaPath, q);
 
-        // 5. Send Edited Image back to WhatsApp
-        await conn.sendMessage(from, {
-            image: { url: result.editedImageUrl },
-            caption: `╭━━〔 🎨 𝗔𝗜 𝗜𝗠𝗔𝗚𝗘 𝗘𝗗𝗜𝗧𝗢𝗥 〕━━━╮\n┃ 📝 *Prompt* : ${q}\n┃ ⚙️ *Resolution* : ${result.outputResolution?.width || 'N/A'}x${result.outputResolution?.height || 'N/A'}\n┃ 🌱 *Seed* : ${result.seed || 'N/A'}\n╰━━━━━━━━━━━━━━━━━━━━━━━━╯`
+        await conn[_0x51ab(48)](from, {
+            image: { url: result[_0x51ab(27)] },
+            caption: `╭━━〔 🎨 𝗔𝗜 𝗜𝗠𝗔𝗚𝗘 𝗘𝗗𝗜𝗧𝗢𝗥 〕━━━╮\n┃ 📝 *Prompt* : ` + q + `\n┃ ⚙️ *DR+KAMRAN+Resolution* : ` + (result.outputResolution?.[_0x51ab(63)] || _0x51ab(65)) + `x` + (result.outputResolution?.[_0x51ab(64)] || _0x51ab(65)) + `\n┃ 🌱 *Seed* : ` + (result[_0x51ab(66)] || _0x51ab(65)) + `\n╰━━━━━━━━━━━━━━━━━━━━━━━━╯`
         }, { quoted: mek });
 
-        // 6. Cleanup
-        if (fs.existsSync(mediaPath)) {
-            fs.unlinkSync(mediaPath);
+        if (_0x7a8b[_0x51ab(11)](mediaPath)) {
+            _0x7a8b[_0x51ab(67)](mediaPath);
         }
 
-        await conn.sendMessage(from, { react: { text: "✅", key: mek.key } });
+        await conn[_0x51ab(48)](from, { react: { text: _0x51ab(68), key: mek.key } });
 
     } catch (err) {
         console.error(err);
-        reply("❌ Error: " + err.message);
+        reply(_0x51ab(69) + err.message);
     }
 });
