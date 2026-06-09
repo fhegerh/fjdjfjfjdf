@@ -1,4 +1,4 @@
-const _0x4f12 = ["../command", "axios", "cheerio", "form-data", "fs", "path", "https://flatai.org/wp-admin/admin-ajax.php", "https://flatai.org/edit-image-with-text-ai/", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36", "ai_image_editor_nonce", "Gagal ambil nonce dari halaman", "existsSync", "statSync", "Image too large. Max 10MB.", "action", "ai_image_editor_image", "nonce", "prompt", "image_file", "createReadStream", "basename", "extname", "slice", "png", "post", "getHeaders", "success", "editedImageUrl", "API gagal: ", "stringify", "editimg", "flatai", "aimage", "editai", "ai", "🎨", "❌ Please provide a prompt! Example: `.editimg make it a zombie`", "imageMessage", "type", "mtype", "msg", "mimetype", "startsWith", "image/", "quoted", "mime", "❌ Please reply to an image or send an image with the command/caption!", "⏳", "sendMessage", "🔄 Processing your image with AI... Please wait standard loading time.", "join", "__dirname", "temp_", ".jpg", "writeFileSync", "@whiskeysockets/baileys", "downloadContentFromMessage", "@adiwajshing/baileys", "message", "concat", "downloadAndSaveMediaMessage", "download", "❌ Error: Could not download the image.", "width", "height", "N/A", "seed", "unlinkSync", "✅", "❌ Error: "];
+const _0x4f12 = ["../command", "axios", "cheerio", "form-data", "fs", "path", "https://flatai.org/wp-admin/admin-ajax.php", "https://flatai.org/edit-image-with-text-ai/", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36", "ai_image_editor_nonce", "Gagal ambil nonce dari halaman", "existsSync", "statSync", "Image too large. Max 10MB.", "action", "ai_image_editor_image", "nonce", "prompt", "image_file", "createReadStream", "basename", "extname", "slice", "png", "post", "getHeaders", "success", "editedImageUrl", "API gagal: ", "stringify", "editimg", "flatai", "aimage", "editai", "ai", "🎨", "❌ Please provide a prompt! Example: `.editimg make it a zombie`", "imageMessage", "type", "mtype", "msg", "mimetype", "startsWith", "image/", "quoted", "mime", "❌ Please reply to an image or send an image with the command/caption!", "⏳", "sendMessage", "🔄 Processing your image with AI... Please wait standard loading time.", "join", "__dirname", "temp_", ".jpg", "writeFileSync", "@whiskeysockets/baileys", "downloadContentFromMessage", "@adiwajshing/baileys", "message", "concat", "Media keys are missing. Direct Baileys stream failed.", "width", "height", "N/A", "seed", "unlinkSync", "✅", "❌ Error: "];
 const _0x51ab = function(_0x2c1a) { return _0x4f12[_0x2c1a]; };
 
 const { cmd } = require(_0x51ab(0));
@@ -94,55 +94,54 @@ async (conn, mek, m, { from, args, q, reply }) => {
         let mediaPath = _0x9c0d[_0x51ab(50)](_0x51ab(51), _0x51ab(52) + Date.now() + _0x51ab(53));
         let buffer;
         
-        try {
-            let downloadContentFromMessage;
-            try {
-                downloadContentFromMessage = require(_0x51ab(55))[_0x51ab(56)];
-            } catch {
-                downloadContentFromMessage = require(_0x51ab(57))[_0x51ab(56)];
-            }
-
-            const target = m.quoted ? m.quoted : m;
-            const imageMessage = target.msg || target.message?.imageMessage || target;
-
-            if (!imageMessage || !downloadContentFromMessage) throw new Error("Fallback required");
-
-            const stream = await downloadContentFromMessage(imageMessage, 'image');
-            let chunks = [];
-            for await (const chunk of stream) {
-                chunks.push(chunk);
-            }
-            buffer = Buffer[_0x51ab(59)](chunks);
-            _0x7a8b[_0x51ab(54)](mediaPath, buffer);
-
-        } catch (manualError) {
-            const targetMessage = m.quoted ? m.quoted : m;
-            if (conn[_0x51ab(60)]) {
-                mediaPath = await conn[_0x51ab(60)](targetMessage);
-            } else if (targetMessage[_0x51ab(61)]) {
-                const buf = await targetMessage[_0x51ab(61)]();
-                _0x7a8b[_0x51ab(54)](mediaPath, buf);
-            } else {
-                return reply(_0x51ab(62));
+        const target = m.quoted ? m.quoted : m;
+        let mediaObj = target.msg || target;
+        if (target[_0x51ab(58)]) {
+            const msgKeys = Object.keys(target[_0x51ab(58)]);
+            const matchedKey = msgKeys.find(k => k.toLowerCase().includes('image'));
+            if (matchedKey) {
+                mediaObj = target[_0x51ab(58)][matchedKey];
             }
         }
+        if (!mediaObj.mediaKey && target.imageMessage) {
+            mediaObj = target.imageMessage;
+        }
+
+        let downloadContentFromMessage;
+        try {
+            downloadContentFromMessage = require(_0x51ab(55))[_0x51ab(56)];
+        } catch {
+            downloadContentFromMessage = require(_0x51ab(57))[_0x51ab(56)];
+        }
+
+        if (!mediaObj || !mediaObj.mediaKey) {
+            throw new Error(_0x51ab(60));
+        }
+
+        const stream = await downloadContentFromMessage(mediaObj, 'image');
+        let chunks = [];
+        for await (const chunk of stream) {
+            chunks.push(chunk);
+        }
+        buffer = Buffer[_0x51ab(59)](chunks);
+        _0x7a8b[_0x51ab(54)](mediaPath, buffer);
 
         const editor = new _0x2f4a();
         const result = await editor.edit(mediaPath, q);
 
         await conn[_0x51ab(48)](from, {
             image: { url: result[_0x51ab(27)] },
-            caption: `╭━━〔 🎨 𝗔𝗜 𝗜𝗠𝗔𝗚𝗘 𝗘𝗗𝗜𝗧𝗢𝗥 〕━━━╮\n┃ 📝 *Prompt* : ` + q + `\n┃ ⚙️ *DR+KAMRAN+Resolution* : ` + (result.outputResolution?.[_0x51ab(63)] || _0x51ab(65)) + `x` + (result.outputResolution?.[_0x51ab(64)] || _0x51ab(65)) + `\n┃ 🌱 *Seed* : ` + (result[_0x51ab(66)] || _0x51ab(65)) + `\n╰━━━━━━━━━━━━━━━━━━━━━━━━╯`
+            caption: `╭━━〔 🎨 𝗔𝗜 𝗜𝗠𝗔𝗚𝗘 𝗘𝗗𝗜𝗧𝗢𝗥 〕━━━╮\n┃ 📝 *Prompt* : ` + q + `\n┃ ⚙️ *Resolution* : ` + (result.outputResolution?.[_0x51ab(61)] || _0x51ab(63)] ) + `x` + (result.outputResolution?.[_0x51ab(62)] || _0x51ab(63)] ) + `\n┃ 🌱 *Seed* : ` + (result[_0x51ab(64)] || _0x51ab(63)] ) + `\n╰━━━━━━━━━━━━━━━━━━━━━━━━╯`
         }, { quoted: mek });
 
         if (_0x7a8b[_0x51ab(11)](mediaPath)) {
-            _0x7a8b[_0x51ab(67)](mediaPath);
+            _0x7a8b[_0x51ab(65)](mediaPath);
         }
 
-        await conn[_0x51ab(48)](from, { react: { text: _0x51ab(68), key: mek.key } });
+        await conn[_0x51ab(48)](from, { react: { text: _0x51ab(66), key: mek.key } });
 
     } catch (err) {
         console.error(err);
-        reply(_0x51ab(69) + err.message);
+        reply(_0x51ab(67) + err.message);
     }
 });
