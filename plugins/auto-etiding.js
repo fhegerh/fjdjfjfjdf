@@ -1,3 +1,16 @@
+/***
+ *** ᠁᠁᠁᠁᠁᠁᠁᠁᠁᠁᠁᠁᠁
+ *** - Dev: FongsiDev
+ *** - Contact: t.me/dashmodz
+ *** - Gmail: fongsiapi@gmail.com & fgsidev@neko2.net
+ *** - Saluran WhatsApp: whatsapp.com/channel/0029VapkSr45q08hPPPVqy26
+ *** - Telegram Group: t.me/fongsidev
+ *** - Github: github.com/Fgsi-APIs/RestAPIs/issues/new
+ *** - Website: fgsi.koyeb.app
+ *** ᠁᠁᠁᠁᠁᠁᠁᠁᠁᠁᠁᠁᠁
+ ***/
+// Scraper By Fgsi | Integrated into Command Format
+
 const { cmd } = require("../command");
 const axios = require('axios');
 const cheerio = require('cheerio');
@@ -59,7 +72,7 @@ class FlataiImageEditor {
       throw new Error(`API gagal: ${JSON.stringify(data)}`);
     }
 
-    return data.data; // editedImageUrl, seed, outputResolution returns karega
+    return data.data;
   }
 }
 
@@ -77,9 +90,17 @@ async (conn, mek, m, { from, args, q, reply }) => {
         // 1. Check if prompt is given
         if (!q) return reply("❌ Please provide a prompt! Example: `.editimg make it a zombie`");
 
-        // 2. Check if image is provided (Direct or Quoted)
-        const isQuotedImage = m.quoted ? (m.quoted.type === 'imageMessage' || (m.quoted.msg && m.quoted.msg.mimetype && m.quoted.msg.mimetype.startsWith('image/'))) : false;
-        const isImage = m.type === 'imageMessage' || (m.msg && m.msg.mimetype && m.msg.mimetype.startsWith('image/'));
+        // 2. Comprehensive Multi-Framework Image Detection (FIXED)
+        const isImage = m.type === 'imageMessage' || 
+                        m.mtype === 'imageMessage' || 
+                        (m.msg && m.msg.mimetype && m.msg.mimetype.startsWith('image/'));
+
+        const isQuotedImage = m.quoted ? (
+                        m.quoted.type === 'imageMessage' || 
+                        m.quoted.mtype === 'imageMessage' || 
+                        (m.quoted.msg && m.quoted.msg.mimetype && m.quoted.msg.mimetype.startsWith('image/')) ||
+                        (m.quoted.mime && m.quoted.mime.startsWith('image/'))
+        ) : false;
 
         if (!isImage && !isQuotedImage) {
             return reply("❌ Please reply to an image or send an image with the command/caption!");
@@ -89,7 +110,7 @@ async (conn, mek, m, { from, args, q, reply }) => {
         await conn.sendMessage(from, { react: { text: "⏳", key: mek.key } });
         reply("🔄 Processing your image with AI... Please wait standard loading time.");
 
-        // 3. Download the image to a temporary file
+        // 3. Download target setup
         const targetMessage = m.quoted ? m.quoted : m;
         let mediaPath;
 
@@ -113,7 +134,7 @@ async (conn, mek, m, { from, args, q, reply }) => {
             caption: `╭━━〔 🎨 𝗔𝗜 𝗜𝗠𝗔𝗚𝗘 𝗘𝗗𝗜𝗧𝗢𝗥 〕━━━╮\n┃ 📝 *Prompt* : ${q}\n┃ ⚙️ *Resolution* : ${result.outputResolution?.width || 'N/A'}x${result.outputResolution?.height || 'N/A'}\n┃ 🌱 *Seed* : ${result.seed || 'N/A'}\n╰━━━━━━━━━━━━━━━━━━━━━━━━╯`
         }, { quoted: mek });
 
-        // 6. Cleanup (Delete temp file from storage)
+        // 6. Cleanup
         if (fs.existsSync(mediaPath)) {
             fs.unlinkSync(mediaPath);
         }
@@ -125,4 +146,3 @@ async (conn, mek, m, { from, args, q, reply }) => {
         reply("❌ Error: " + err.message);
     }
 });
-                                                                                                           
