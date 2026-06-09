@@ -35,7 +35,7 @@ async (conn, mek, m, { from, args, q, reply }) => {
     // 4. Hit the Background Remover API
     const res = await fetch('https://fgsi.dpdns.org/api/tools/removebg', {
       method: 'POST',
-      headers: { apikey: 'APIKEYMU' }, // Yahan apni API Key lagayein
+      headers: { apikey: 'fgsiapi-36cd2f79-6d' }, // Yahan apni API Key lagayein
       body: form
     })
     
