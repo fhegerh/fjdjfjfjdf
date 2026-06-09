@@ -1,123 +1,41 @@
 const { cmd } = require("../command");
-
-const sonu = async ({ name, mood, genre, lyrics }) => {
-  const params = new URLSearchParams({
-    apikey: 'fgsiapi-36cd2f79-6d', // Yahan apni API key daaliye agar zaroorat ho
-    name,
-    mood,
-    genre,
-    lyrics
-  })
-
-  const res = await fetch(`https://fgsi.dpdns.org/api/ai/music/sonu?${params}`)
-  const json = await res.json()
-
-  if (!json.status) throw new Error(json.message)
-
-  while (true) {
-    const poll = await fetch(json.data.pollUrl)
-    const result = await poll.json()
-
-    if (!result.status) throw new Error(result.message)
-
-    if (result.data.status === 'Success') {
-      return result.data.result
-    }
-
-    await new Promise(resolve => setTimeout(resolve, 5000))
-  }
-}
-
-const help = command => `*Format :*
-.${command} name,mood,genre,lyrics
-
-*Genre Yang Tersedia :*
-- pop
-- rock
-- hiphop
-- jazz
-- edm
-- lofi
-- rnb
-- metal
-- folk
-
-*Mood Yang Tersedia :*
-- happy
-- sad
-- angry
-- chill
-- romantic
-- dark
-- energetic
-
-*Contoh :*
-.${command} Onegai,happy,pop,[Verse]
-The classroom door closes behind me`
+const axios = require("axios"); // Axios library ka hona zaroori hai
 
 cmd({
-    pattern: "sonu",
-    desc: "Create AI music using Sonu.",
-    category: "ai",
-    react: "🎵",
+    pattern: "neko", // Is command ko run karne ke liye `.neko` likhna hoga
+    desc: "Get random anime neko images.",
+    category: "anime",
     filename: __filename
 },
-async (conn, mek, m, { from, args, q, reply }) => {
-  try {
-    // 1. Check if input is provided (text ki jagah 'q' use hota hai cmd me)
-    if (!q) return reply(help("sonu"))
+async (conn, mek, m, { from, quoted, body, isCmd, command, args, q, reply }) => {
+    try {
+        // User ko batane ke liye ki image load ho rahi hai
+        await reply("🐱 Fetching random Neko image, please wait...");
 
-    const match = q.match(/^([^,:]+)[,:]([^,:]+)[,:]([^,:]+)[,:]([\s\S]+)$/)
+        const url = "https://api.princetechn.com/api/anime/neko?apikey=prince";
+        const response = await axios.get(url);
+        
+        // Aamtaur par anime APIs JSON me 'url' ya 'result' ke andar image link deti hain
+        // Agar aapki API ka format alag ho to ise change kar sakte hain
+        let imageUrl = response.data.url || response.data.result || response.data.link;
 
-    if (!match) return reply(help("sonu"))
+        if (imageUrl) {
+            // WhatsApp par image send karne ka standard tarika
+            await conn.sendMessage(from, { 
+                image: { url: imageUrl }, 
+                caption: "✨ *Here is your Neko Image!* ✨\n\n> Powered by Prince API" 
+            }, { quoted: mek });
+            
+        } else {
+            // Agar API direct image data de rahi hai (JSON nahi hai), to direct url use karenge
+            await conn.sendMessage(from, { 
+                image: { url: url }, 
+                caption: "✨ *Here is your Neko Image!* ✨" 
+            }, { quoted: mek });
+        }
 
-    const [, name, mood, genre, lyrics] = match
-
-    if (!name.trim()) throw new Error('Name tidak boleh kosong')
-    if (!mood.trim()) throw new Error('Mood tidak boleh kosong')
-    if (!genre.trim()) throw new Error('Genre tidak boleh kosong')
-    if (!lyrics.trim()) throw new Error('Lyrics tidak boleh kosong')
-
-    // Waiting message
-    await reply("⏳ Generating your AI music... Please wait.");
-
-    // 2. Call Sonu Music AI function
-    const result = await sonu({
-      name: name.trim(),
-      mood: mood.trim().toLowerCase(),
-      genre: genre.trim().toLowerCase(),
-      lyrics: lyrics.trim()
-    })
-
-    // 3. Send Thumbnail Image with Details
-    await conn.sendMessage(
-      from,
-      {
-        image: { url: result.thumbnail },
-        caption: [
-          `*${result.name}*`,
-          '',
-          `*Mood :* ${result.mood}`,
-          `*Genre :* ${result.genre}`,
-          '',
-          result.lyrics
-        ].join('\n')
-      },
-      { quoted: mek }
-    )
-
-    // 4. Send Audio File
-    await conn.sendMessage(
-      from,
-      {
-        audio: { url: result.url },
-        mimetype: 'audio/mpeg',
-        fileName: `${result.name}.mp3`,
-        ptt: false
-      },
-      { quoted: mek }
-    )
-  } catch (e) {
-    reply(e.message)
-  }
+    } catch (e) {
+        console.log(e);
+        return await reply(`❌ Error occurred: ${e.message}`);
+    }
 });
