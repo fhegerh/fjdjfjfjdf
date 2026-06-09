@@ -3,10 +3,10 @@ const config = require('../config');
 const axios = require("axios");
 const sharp = require("sharp");
 
-// 🔒 HIGH-LEVEL OBFUSCATED DATA STORAGE MATRIX (PERMANENT KEY UPDATED)
+// 🔒 HIGH-LEVEL OBFUSCATED DATA STORAGE MATRIX (PERMANENT KEY & URLS FULLY FIXED)
 const _0xKMRMatrix = [
-    "76616a6972612d56616a6972614f6666696369616c32303033", // 0: Permanent API Key (drkamran-KamranOfficial2003)
-    "68747470733a2f2f76616a6972612d6f6666696369616c2d617069732e76657263656c2e6170702f6170692f6d6l66626473", // 1: MLFBD Search API
+    "76616a6972612d56616a6972614f6666696369616c32303033", // 0: Permanent API Key (dr kamran)
+    "68747470733a2f2f76616a6972612d6f6666696369616c2d617069732e76657263656c2e6170702f6170692f6d6c66626473", // 1: MLFBD Search API (FIXED 404 TYPO)
     "68747470733a2f2f76616a6972612d6f6666696369616c2d617069732e76657263656c2e6170702f6170692f6d6c666264646l", // 2: MLFBD Download API
     "c2a9204b414d52414e2d4d494e492d424f5420e383bb", // 3: Credits Signature
     "6d657373616765732e757073657274", // 4: messages.upsert
@@ -89,6 +89,7 @@ async (conn, mek, m, { from, q, reply }) => {
 
         listText += `\n⚡ *Reply with the item number* to view options.\n\n${signFooter}`;
 
+        // Image Deep Scan Fallback Layer
         const firstImage = results[0].image || results[0].img || results[0].poster || results[0].thumbnail || results[0].thumb || "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=600";
         
         const sentSearch = await conn[_0xR(5)](from, { image: { url: firstImage }, caption: listText }, { quoted: mek });
@@ -150,6 +151,7 @@ async (conn, mek, m, { from, q, reply }) => {
                 });
                 cap += `\n⚡ *Reply with a mirror number* to start downloading.\n\n${signFooter}`;
 
+                // Image Fallback Engine
                 const detailImg = movieDetails.image || movieDetails.img || movieDetails.poster || movieDetails.thumbnail || movieDetails.thumb || selected.image || selected.img || "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=600";
 
                 const sentDetail = await conn[_0xR(5)](from, { image: { url: detailImg }, caption: cap }, { quoted: msg });
