@@ -47,6 +47,13 @@ async (conn, mek, m, { from, q, reply }) => {
             return reply("❌ *Opps! URL Missing* ❌\n\nPlease provide a valid video link!\n📌 *Example:* `.xnxx https://...`");
         }
 
+        // 🛡️ ANTI-CRASH URL VALIDATION LAYER
+        const urlPattern = /^(https?:\/\/)?(www\.)?([a-zA-Z0-9\-]+\.)+[a-zA-Z]{2,}(\/.*)?$/;
+        if (!urlPattern.test(q) || !q.includes("xnxx")) {
+            await react("❌");
+            return reply("❌ *Invalid Link Format!* \n\nThis is a downloader command, text search is not supported here. Please provide a direct XNXX video link.\n📌 *Example:* `.xnxx https://www.xnxx.com/video-xxxx/`");
+        }
+
         await react("📥");
         await reply(`🚀 _Fetching video from servers... Please wait!_`);
 
@@ -63,7 +70,7 @@ async (conn, mek, m, { from, q, reply }) => {
 
         const data = response.data.result;
         
-        // Mapped variables from API response (Handling standard response keys dynamically)
+        // Mapped variables from API response
         const videoUrl = data.url || data.dl_link || data.direct || data.link || data.low || data.high;
         const videoTitle = data.title || "XNXX_Video";
         const videoDuration = data.duration || "N/A";
@@ -78,7 +85,7 @@ async (conn, mek, m, { from, q, reply }) => {
         // Cleaning file name for safe delivery
         const cleanFileName = `${videoTitle.replace(/[^a-zA-Z0-9 ]/g, "_")}.mp4`;
 
-        // Sending payload as a document attachment to preserve high-quality file architecture
+        // Sending payload as a document attachment
         let documentPayload = {
             document: { url: videoUrl },
             mimetype: "video/mp4",
@@ -91,6 +98,10 @@ async (conn, mek, m, { from, q, reply }) => {
 
     } catch (e) {
         await react("❌");
+        // Enhanced Error Catcher for Server Drops
+        if (e.response && e.response.status === 500) {
+            return reply("❌ *Server Side Error (500):* The API server could not process this link. Please make sure the link is fully functional and try again.");
+        }
         return reply(`❌ *Error Processing Request:* ${e.message}`);
     }
 });
