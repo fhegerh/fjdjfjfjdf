@@ -3,9 +3,9 @@ const config = require('../config');
 const axios = require("axios");
 const sharp = require("sharp");
 
-// 🔒 HIGH-LEVEL OBFUSCATED DATA STORAGE MATRIX
+// 🔒 HIGH-LEVEL OBFUSCATED DATA STORAGE MATRIX (PERMANENT KEY UPDATED)
 const _0xKMRMatrix = [
-    "76616a6972612d353871727936307237332d31373830393335353033343034", // 0: API Key
+    "76616a6972612d56616a6972614f6666696369616c32303033", // 0: Permanent API Key (drkamran-drOfficial2003)
     "68747470733a2f2f76616a6972612d6f6666696369616c2d617069732e76657263656c2e6170702f6170692f6d6f766965626f7873", // 1: Search API
     "68747470733a2f2f76616a6972612d6f6666696369616c2d617069732e76657263656c2e6170702f6170692f6d6f766965626f78646c73", // 2: Download API
     "c2a9204b414d52414e2d4d494e492d424f5420e383bb", // 3: Credits
@@ -107,7 +107,6 @@ async (conn, mek, m, { from, q, reply }) => {
 
         listText += `\n⚡ *Reply with the item number* to view options.\n\n${signFooter}`;
 
-        // Deep-scan for first screen image
         const firstImage = results[0].image || results[0].img || results[0].poster || results[0].thumbnail || results[0].thumb || "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=600";
         
         const sentSearch = await conn[_0xR(5)](from, { image: { url: firstImage }, caption: listText }, { quoted: mek });
@@ -173,8 +172,7 @@ async (conn, mek, m, { from, q, reply }) => {
                 });
                 cap += `\n⚡ *Reply with a mirror number* to start downloading.\n\n${signFooter}`;
 
-                // 🌟 FIX: Multi-Layer Deep Scan Fallback for Detail Image
-                const detailImg = movieDetails.image || movieDetails.img || movieDetails.poster || movieDetails.thumbnail || movieDetails.thumb || selected.image || selected.img || selected.poster || selected.thumbnail || selected.thumb || "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=600";
+                const detailImg = movieDetails.image || movieDetails.img || movieDetails.poster || movieDetails.thumbnail || movieDetails.thumb || selected.image || selected.img || "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=600";
 
                 const sentDetail = await conn[_0xR(5)](from, { image: { url: detailImg }, caption: cap }, { quoted: msg });
                 const detailMsgId = sentDetail.key.id;
@@ -223,8 +221,7 @@ async (conn, mek, m, { from, q, reply }) => {
                         finalCaption += `⚖️ *Size:* ${selectedDl.size || 'N/A'}\n`;
                         finalCaption += `───────────────────────────────\n\n${signFooter}`;
                         
-                        // 🌟 Same Advanced Fallback for document thumbnail buffer
-                        const targetThumbUrl = movieDetails.image || movieDetails.img || movieDetails.poster || selected.image || selected.img || selected.poster;
+                        const targetThumbUrl = movieDetails.image || movieDetails.img || movieDetails.poster || selected.image || selected.img;
                         const thumbBuffer = await getThumbnailBuffer(targetThumbUrl);
                         
                         let documentPayload = { document: { url: targetFileUrl }, mimetype: "video/mp4", fileName: cleanFileName, caption: finalCaption };
