@@ -1,74 +1,44 @@
 const { cmd } = require("../command");
-
-// Initialize global session object if it doesn't exist
-global.gemsesi = global.gemsesi || {};
-
-// Function to upload image buffer to Uguu.se
-async function Uguu(buffer, filename) {
-  const form = new FormData()
-  const blob = new Blob([buffer])
-  form.append('files[]', blob, filename)
-  const res = await fetch('https://uguu.se/upload.php', { method: 'POST', body: form })
-  const json = await res.json()
-  if (!json.files?.[0]) {
-    throw new Error('Upload gagal')
-  }
-  return json.files[0].url
-}
+const axios = require("axios"); // Axios library ka installed hona zaroori hai
 
 cmd({
-    pattern: "gemini",
-    desc: "Chat with Gemini AI, supports image analysis and conversation memory.",
+    pattern: "gemini", // Is command ko run karne ke liye `.ai` likhna hoga (e.g., .ai hello)
+    desc: "Ask anything to AI chatbot.",
     category: "ai",
-    react: "🤖",
     filename: __filename
 },
-async (conn, mek, m, { from, args, q, reply }) => {
-  try {
-    // 1. Check if user prompt is provided (text ki jagah 'q' use hota hai)
-    if (!q) return reply(`*Example :* .gemini Jelaskan gambar ini`)
+async (conn, mek, m, { from, quoted, body, isCmd, command, args, q, reply }) => {
+    try {
+        // Agar user ne command ke baad koi sawal nahi pucha
+        if (!q) {
+            return await reply("❌ Please provide a prompt/question!\n*Example:* .ai write a short poem about coding");
+        }
 
-    // Loading notification
-    await reply("⏳ Thinking... Please wait.");
+        // User ko waiting message dikhane ke liye
+        await reply("🤖 AI is thinking, please wait...");
 
-    let img = ''
-    const target = m.quoted ? m.quoted : m
-    const mime = (target.msg || target).mimetype || ''
+        // API URL jisme encodeURIComponent use kiya hai taaki spaces aur special characters url me crash na karein
+        const url = `https://api.princetechn.com/api/ai/ai?apikey=prince&q=${encodeURIComponent(q)}`;
+        
+        const response = await axios.get(url);
+        
+        if (response.data) {
+            let aiResult = response.data;
 
-    // 2. If an image is sent or quoted, upload it first
-    if (mime.startsWith('image/')) {
-      const buffer = await target.download()
-      img = await Uguu(buffer, `image.${mime.split('/')[1]}`)
+            // Agar API direct text ke bajaye JSON object de rahi hai, to use handle karne ke liye:
+            if (typeof aiResult === 'object') {
+                // Agar response me 'result' ya 'response' ya 'ai' key hai to wo nikalenge, nahi to pura object text bana denge
+                aiResult = aiResult.result || aiResult.response || aiResult.ai || JSON.stringify(aiResult, null, 2);
+            }
+
+            // AI ka jawaab chat me send karna
+            return await reply(`${aiResult}`);
+        } else {
+            return await reply("❌ AI API se koi jawab nahi mila.");
+        }
+
+    } catch (e) {
+        console.log(e);
+        return await reply(`❌ Error occurred: ${e.message}`);
     }
-
-    // Identify sender session
-    const sender = m.sender || m.key.participant || from;
-    const sesi = global.gemsesi[sender]
-
-    // 3. Clear session if older than 10 minutes (600,000 ms)
-    if (sesi && Date.now() - sesi.time > 600000) {
-      delete global.gemsesi[sender]
-    }
-
-    // 4. Request Gemini AI API
-    const conversationId = global.gemsesi[sender]?.id || ''
-    const res = await fetch(
-      `https://fgsi.dpdns.org/api/ai/gemini?apikey=fgsiapi-36cd2f79-6d&text=${encodeURIComponent(q)}&url=${encodeURIComponent(img)}&conversationId=${conversationId}&language=&modeSearch=`
-    )
-    const json = await res.json()
-
-    if (!json.status) throw new Error(json.message || "Gagal mendapatkan respon")
-
-    // 5. Update session for chat continuity
-    global.gemsesi[sender] = {
-      id: json.data.result.conversation_id,
-      time: Date.now()
-    }
-
-    // 6. Send AI answer back
-    await reply(json.data.result.answer)
-
-  } catch (e) {
-    reply("❌ Error: " + e.message)
-  }
 });
