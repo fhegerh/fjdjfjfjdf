@@ -1,89 +1,45 @@
-const { cmd } = require('../command');
-const axios = require('axios');
+const { cmd } = require("../command");
+const axios = require("axios"); // Axios library ka installed hona zaroori hai
 
 cmd({
-    pattern: "ai",
-    alias: ["gpt5", "dj", "gpt", "gpt4", "adeel"],
-    desc: "Chat with AI (Urdu in English style)",
+    pattern: "ai", // Is command ko run karne ke liye `.ai` likhna hoga (e.g., .ai hello)
+    desc: "Ask anything to AI chatbot.",
     category: "ai",
-    react: "🤖",
     filename: __filename
 },
-async (conn, mek, m, { from, args, q, reply, react }) => {
+async (conn, mek, m, { from, quoted, body, isCmd, command, args, q, reply }) => {
     try {
-        if (!q) return reply("⚠️ Apka message please likho, example: `.ai Salam`");
-
-        const apiUrl = `https://lance-frank-asta.onrender.com/api/gpt?q=${encodeURIComponent(q)}`;
-        const { data } = await axios.get(apiUrl);
-
-        if (!data || !data.message) {
-            await react("❌");
-            return reply("❌ AI ne jawab nahi diya, try later.");
+        // Agar user ne command ke baad koi sawal nahi pucha
+        if (!q) {
+            return await reply("❌ Please provide a prompt/question!\n*Example:* .ai write a short poem about coding");
         }
 
-        await reply(`🤖 *AI ka jawab:*\n\n${data.message}`);
-        await react("✅");
+        // User ko waiting message dikhane ke liye
+        await reply("🤖 AI is thinking, please wait...");
+
+        // API URL jisme encodeURIComponent use kiya hai taaki spaces aur special characters url me crash na karein
+        const url = `https://api.princetechn.com/api/ai/ai?apikey=prince&q=${encodeURIComponent(q)}`;
+        
+        const response = await axios.get(url);
+        
+        if (response.data) {
+            let aiResult = response.data;
+
+            // Agar API direct text ke bajaye JSON object de rahi hai, to use handle karne ke liye:
+            if (typeof aiResult === 'object') {
+                // Agar response me 'result' ya 'response' ya 'ai' key hai to wo nikalenge, nahi to pura object text bana denge
+                aiResult = aiResult.result || aiResult.response || aiResult.ai || JSON.stringify(aiResult, null, 2);
+            }
+
+            // AI ka jawaab chat me send karna
+            return await reply(`${aiResult}`);
+        } else {
+            return await reply("❌ AI API se koi jawab nahi mila.");
+        }
+
     } catch (e) {
-        console.error("Error in AI command:", e);
-        await react("❌");
-        reply("❌ AI se contact me problem hua.");
+        console.log(e);
+        return await reply(`❌ Error occurred: ${e.message}`);
     }
 });
 
-cmd({
-    pattern: "openai",
-    alias: ["chatgpt", "gpt3", "open-gpt"],
-    desc: "Chat with OpenAI (Urdu in English style)",
-    category: "ai",
-    react: "🧠",
-    filename: __filename
-},
-async (conn, mek, m, { from, args, q, reply, react }) => {
-    try {
-        if (!q) return reply("⚠️ Apka message please likho, example: `.openai Salam`");
-
-        const apiUrl = `https://vapis.my.id/api/openai?q=${encodeURIComponent(q)}`;
-        const { data } = await axios.get(apiUrl);
-
-        if (!data || !data.result) {
-            await react("❌");
-            return reply("❌ OpenAI ne jawab nahi diya, try later.");
-        }
-
-        await reply(`🧠 *OpenAI ka ok:*\n\n${data.result}`);
-        await react("✅");
-    } catch (e) {
-        console.error("Error in OpenAI command:", e);
-        await react("❌");
-        reply("❌ OpenAI se contact me problem hua.");
-    }
-});
-
-cmd({
-    pattern: "deepseek",
-    alias: ["deep", "seekai"],
-    desc: "Chat with DeepSeek AI (Urdu in English style)",
-    category: "ai",
-    react: "🧠",
-    filename: __filename
-},
-async (conn, mek, m, { from, args, q, reply, react }) => {
-    try {
-        if (!q) return reply("⚠️ Apka message please likho, example: `.deepseek Salam`");
-
-        const apiUrl = `https://api.ryzendesu.vip/api/ai/deepseek?text=${encodeURIComponent(q)}`;
-        const { data } = await axios.get(apiUrl);
-
-        if (!data || !data.answer) {
-            await react("❌");
-            return reply("❌ DeepSeek AI ne jawab nahi diya, try later.");
-        }
-
-        await reply(`🧠 *DeepSeek AI ka jawab:*\n\n${data.answer}`);
-        await react("✅");
-    } catch (e) {
-        console.error("Error in DeepSeek AI command:", e);
-        await react("❌");
-        reply("❌ DeepSeek AI se contact me problem hua.");
-    }
-});
