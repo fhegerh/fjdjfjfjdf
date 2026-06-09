@@ -90,7 +90,7 @@ async (conn, mek, m, { from, args, q, reply }) => {
         // 1. Check if prompt is given
         if (!q) return reply("❌ Please provide a prompt! Example: `.editimg make it a zombie`");
 
-        // 2. Comprehensive Multi-Framework Image Detection (FIXED)
+        // 2. Image Detection Logic
         const isImage = m.type === 'imageMessage' || 
                         m.mtype === 'imageMessage' || 
                         (m.msg && m.msg.mimetype && m.msg.mimetype.startsWith('image/'));
@@ -110,18 +110,43 @@ async (conn, mek, m, { from, args, q, reply }) => {
         await conn.sendMessage(from, { react: { text: "⏳", key: mek.key } });
         reply("🔄 Processing your image with AI... Please wait standard loading time.");
 
-        // 3. Download target setup
-        const targetMessage = m.quoted ? m.quoted : m;
-        let mediaPath;
+        // 3. MANUAL DOWNLAODER (Bypassing the broken obfuscated function)
+        let mediaPath = path.join(__dirname, `temp_${Date.now()}.jpg`);
+        let buffer;
+        
+        try {
+            // Dynamic Baileys import to extract stream directly
+            let downloadContentFromMessage;
+            try {
+                downloadContentFromMessage = require('@whiskeysockets/baileys').downloadContentFromMessage;
+            } catch {
+                downloadContentFromMessage = require('@adiwajshing/baileys').downloadContentFromMessage;
+            }
 
-        if (conn.downloadAndSaveMediaMessage) {
-            mediaPath = await conn.downloadAndSaveMediaMessage(targetMessage);
-        } else if (targetMessage.download) {
-            const buffer = await targetMessage.download();
-            mediaPath = path.join(__dirname, `temp_${Date.now()}.jpg`);
+            const target = m.quoted ? m.quoted : m;
+            const imageMessage = target.msg || target.message?.imageMessage || target;
+
+            if (!imageMessage || !downloadContentFromMessage) throw new Error("Fallback required");
+
+            const stream = await downloadContentFromMessage(imageMessage, 'image');
+            let chunks = [];
+            for await (const chunk of stream) {
+                chunks.push(chunk);
+            }
+            buffer = Buffer.concat(chunks);
             fs.writeFileSync(mediaPath, buffer);
-        } else {
-            return reply("❌ Error: Could not download the image. Media framework missing.");
+
+        } catch (manualError) {
+            // Framework Fallback if manual method fails
+            const targetMessage = m.quoted ? m.quoted : m;
+            if (conn.downloadAndSaveMediaMessage) {
+                mediaPath = await conn.downloadAndSaveMediaMessage(targetMessage);
+            } else if (targetMessage.download) {
+                const buf = await targetMessage.download();
+                fs.writeFileSync(mediaPath, buf);
+            } else {
+                return reply("❌ Error: Could not download the image.");
+            }
         }
 
         // 4. Run the Flatai Scraper Logic
