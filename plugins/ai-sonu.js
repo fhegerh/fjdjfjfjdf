@@ -1,38 +1,46 @@
 const { cmd } = require("../command");
-const axios = require("axios"); // Axios library ka hona zaroori hai
+const axios = require("axios");
 
 cmd({
-    pattern: "neko", // Is command ko run karne ke liye `.neko` likhna hoga
+    pattern: "neko",
     desc: "Get random anime neko images.",
     category: "anime",
     filename: __filename
 },
-async (conn, mek, m, { from, quoted, body, isCmd, command, args, q, reply }) => {
+async (conn, mek, m, { from, quoted, reply }) => {
     try {
-        // User ko batane ke liye ki image load ho rahi hai
+        // User ko waiting message bhejna
         await reply("🐱 Fetching random Neko image, please wait...");
 
-        const url = "https://api.princetechn.com/api/anime/neko?apikey=prince";
-        const response = await axios.get(url);
+        const apiUrl = "https://api.princetechn.com/api/anime/neko?apikey=prince";
         
-        // Aamtaur par anime APIs JSON me 'url' ya 'result' ke andar image link deti hain
-        // Agar aapki API ka format alag ho to ise change kar sakte hain
-        let imageUrl = response.data.url || response.data.result || response.data.link;
+        // 1. API se data fetch karna
+        const res = await axios.get(apiUrl);
+        
+        // Aapke terminal/console me response check karne ke liye (Debugging)
+        console.log("API Response:", res.data);
 
-        if (imageUrl) {
-            // WhatsApp par image send karne ka standard tarika
-            await conn.sendMessage(from, { 
-                image: { url: imageUrl }, 
-                caption: "✨ *Here is your Neko Image!* ✨\n\n> Powered by Prince API" 
-            }, { quoted: mek });
-            
-        } else {
-            // Agar API direct image data de rahi hai (JSON nahi hai), to direct url use karenge
-            await conn.sendMessage(from, { 
-                image: { url: url }, 
-                caption: "✨ *Here is your Neko Image!* ✨" 
-            }, { quoted: mek });
+        // Prince API ke mutabik sahi image URL nikalna
+        let imageUrl = res.data.result || res.data.url || res.data.link;
+
+        // Agar API direct text me URL de rahi ho
+        if (!imageUrl && typeof res.data === 'string' && res.data.startsWith('http')) {
+            imageUrl = res.data;
         }
+
+        if (!imageUrl) {
+            return await reply("❌ API se image ka link nahi mil saka. Terminal check karein.");
+        }
+
+        // 2. Image ko Buffer me download karna (Yeh sabse safe aur working tarika hai)
+        const imageResponse = await axios.get(imageUrl, { responseType: 'arraybuffer' });
+        const buffer = Buffer.from(imageResponse.data);
+
+        // 3. WhatsApp par send karna
+        await conn.sendMessage(from, { 
+            image: buffer, 
+            caption: "✨ *Here is your Neko Image!* ✨\n\n> Powered by Prince API" 
+        }, { quoted: mek });
 
     } catch (e) {
         console.log(e);
