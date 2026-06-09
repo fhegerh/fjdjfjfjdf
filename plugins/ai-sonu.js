@@ -2,7 +2,7 @@ const { cmd } = require("../command");
 
 const sonu = async ({ name, mood, genre, lyrics }) => {
   const params = new URLSearchParams({
-    apikey: 'Apikey Mu', // Yahan apni API key daaliye agar zaroorat ho
+    apikey: 'fgsiapi-36cd2f79-6d', // Yahan apni API key daaliye agar zaroorat ho
     name,
     mood,
     genre,
