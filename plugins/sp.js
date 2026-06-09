@@ -19,7 +19,7 @@ async (conn, mek, m, { from, args, q, reply }) => {
     await reply("⏳ Fetching Spotify media... Please wait.");
 
     // 2. Fetch data from Spotify Downloader API
-    const res = await fetch(`https://fgsi.dpdns.org/api/downloader/spotify?apikey=APIKEY_KAMU&url=${encodeURIComponent(args[0])}`);
+    const res = await fetch(`https://fgsi.dpdns.org/api/downloader/spotify?apikey=fgsiapi-36cd2f79-6d&url=${encodeURIComponent(args[0])}`);
     const json = await res.json();
 
     if (!json.status) throw new Error(json.message || "Gagal mendownload lagu");
