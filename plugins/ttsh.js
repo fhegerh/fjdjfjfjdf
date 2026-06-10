@@ -49,7 +49,7 @@ async (conn, mek, m, { from, quoted, body, args, q, reply }) => {
             responseText += `*${styleName}:*\n\`\`\`${styledText}\`\`\`\n\n`;
         });
 
-        responseText += `*Powered by Prince API*`;
+        responseText += `*Powered by DR KAMRAN*`;
 
         // Send the complete list of styled fonts
         return await conn.sendMessage(from, { text: responseText }, { quoted: mek });
