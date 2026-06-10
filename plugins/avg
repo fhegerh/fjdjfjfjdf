@@ -1,7 +1,6 @@
 const { cmd } = require('../command');
 const axios = require("axios");
 const config = require('../config');
-const Seedr = require('seedr');
 
 const API_BASE = "https://vajira-official-apis.vercel.app/api";
 const API_KEY = "vajira-VajiraOfficial2003";
@@ -14,7 +13,7 @@ const seedrConfig = {
 
 cmd({
     pattern: "sublk",
-    desc: "Search and download movies via SubLK and Seedr",
+    desc: "Search and download movies via SubLK and Seedr safely.",
     category: "download",
     react: "🎬",
     use: ".sublk [movie name]",
@@ -22,14 +21,25 @@ cmd({
 },
 async (conn, mek, m, { from, q, reply }) => {
     try {
-        if (!q) return reply("❌ *Format:* `.sublk [movie name]`");
+        // 1. Immediate validation check so the bot responds even without a movie name
+        if (!q || typeof q !== 'string' || !q.trim()) {
+            return reply("❌ *Format Galat Hai!*\n\n*Usage:* `.sublk [Movie Name]`\n\n*Example:* `.sublk Avatar`");
+        }
+
+        // 2. Dynamic dependency injector to prevent silent boot crashes
+        let Seedr;
+        try {
+            Seedr = require('seedr');
+        } catch (dependencyError) {
+            return reply("❌ *Dependency Missing!*\n\nApne terminal/VPS me yeh command run karein:\n```npm install seedr
+```\n\nAur phir bot ko restart (`npm start`) karein!");
+        }
         
-        // Fixed: Using standard framework connection variables
         await conn.sendMessage(from, { react: { text: "🔍", key: mek.key } });
 
-        const { data: searchRes } = await axios.get(`${API_BASE}/sublk?apikey=${API_KEY}&q=${encodeURIComponent(q)}`);
+        const { data: searchRes } = await axios.get(`${API_BASE}/sublk?apikey=${API_KEY}&q=${encodeURIComponent(q.trim())}`);
         if (!searchRes.status || !searchRes.data || !searchRes.data.length) {
-            return reply("❌ No results found.");
+            return reply("❌ No results found for your search query.");
         }
 
         const list = searchRes.data.slice(0, 10);
@@ -45,13 +55,11 @@ async (conn, mek, m, { from, q, reply }) => {
                 const incoming = up.messages?.[0];
                 if (!incoming?.message || incoming.key.remoteJid !== from) return;
 
-                // Robust text extraction from conversation or reply
                 const textContent = incoming.message.conversation || incoming.message.extendedTextMessage?.text || "";
                 const index = parseInt(textContent.trim());
                 
                 if (isNaN(index) || !list[index - 1]) return;
 
-                // Immediately turn off listener to avoid multiple triggers
                 conn.ev.off("messages.upsert", handler);
                 const selected = list[index - 1];
 
@@ -99,7 +107,6 @@ async (conn, mek, m, { from, q, reply }) => {
                         const magnet = `magnet:?xt=urn:btih:${hashMatch[1]}&dn=${encodeURIComponent(movie.title)}`;
                         await seedr.addMagnet(magnet);
 
-                        // Give seedr time to fetch files
                         await new Promise(r => setTimeout(r, 6000));
 
                         let fileInfo = null;
@@ -107,7 +114,6 @@ async (conn, mek, m, { from, q, reply }) => {
 
                         for (let i = 0; i < 20; i++) {
                             const files = await seedr.getVideos();
-                            // Safe multi-dimensional array checking
                             if (files && files[0] && files[0].length > 0) {
                                 folderId = files[0][0].fid;
                                 fileInfo = await seedr.getFile(files[0][0].id);
@@ -117,7 +123,7 @@ async (conn, mek, m, { from, q, reply }) => {
                         }
 
                         if (!fileInfo || !fileInfo.url) {
-                            throw new Error("Seedr processing timeout or 0 seeds found. Ensure file is under 2GB.");
+                            throw new Error("Seedr processing timeout. Ensure file size is under 2GB.");
                         }
 
                         await reply("🚀 *Downloading from Seedr and uploading to WhatsApp...*");
@@ -138,7 +144,6 @@ async (conn, mek, m, { from, q, reply }) => {
                 };
 
                 conn.ev.on("messages.upsert", dlHandler);
-                // Safety timeout for second listener (5 minutes)
                 setTimeout(() => conn.ev.off("messages.upsert", dlHandler), 300000);
 
             } catch (hErr) {
@@ -148,7 +153,6 @@ async (conn, mek, m, { from, q, reply }) => {
         };
 
         conn.ev.on("messages.upsert", handler);
-        // Safety timeout for first listener (5 minutes)
         setTimeout(() => conn.ev.off("messages.upsert", handler), 300000);
 
     } catch (e) {
