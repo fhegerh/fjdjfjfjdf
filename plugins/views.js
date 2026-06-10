@@ -10,7 +10,7 @@ cmd({
 },
 async (conn, mek, m, { from, quoted, body, args, q, reply }) => {
     try {
-        // 1. Ultra safe string validation to prevent silent crashes
+        // Ultra safe string validation to prevent silent crashes
         if (!q || typeof q !== 'string' || !q.trim()) {
             return reply("❌ *Format Galat Hai!*\n\n*Usage:* `,ttboost [TikTok-URL] [Target]`\n\n*Example:* `,ttboost https://vt.tiktok.com/ZSQDgCmj5/ 100`\n\n_(Target nahi likhenge toh auto 100 ho jayega)_");
         }
@@ -27,7 +27,6 @@ async (conn, mek, m, { from, quoted, body, args, q, reply }) => {
 
         const endpointUrl = `https://api-xemoz-official.my.id/api/tools/tiktok-boost.php?url=${encodeURIComponent(tiktokUrl)}&target=${targetCount}`;
 
-        // 2. Added validateStatus so bad gateway or api errors don't crash axios
         const response = await axios.get(endpointUrl, { 
             timeout: 60000,
             validateStatus: () => true,
@@ -38,7 +37,7 @@ async (conn, mek, m, { from, quoted, body, args, q, reply }) => {
 
         let data = response.data;
         
-        // Safe JSON parsing wrapper
+        // Safe JSON parsing wrapper if delivered as string
         if (typeof data === 'string') {
             try {
                 data = JSON.parse(data);
@@ -47,17 +46,22 @@ async (conn, mek, m, { from, quoted, body, args, q, reply }) => {
             }
         }
 
-        // 3. Robust response matching structure
-        if (response.status === 200 && (data?.status === 200 || data?.success === true || data?.message)) {
+        // 🎯 EXACT MATCH FOR XEMOZ API JSON SIGNATURE
+        if (response.status === 200 && (data?.status === true || data?.status === 200 || data?.success === true)) {
+            
+            // Extracting the message inside the nested result object
+            const apiMessage = data?.result?.message || data?.message || 'Successfully Queued!';
+            const apiTarget = data?.result?.target || targetCount;
+
             let msgText = `⚡ *TIKTOK BOOST SUBMITTED* ⚡\n\n`;
             msgText += `🔗 *Video Link:* ${tiktokUrl}\n`;
-            msgText += `🎯 *Target Limit:* ${targetCount}\n`;
-            msgText += `📢 *Status:* ${data?.message || data?.result || 'Successfully Queued!'}\n\n`;
+            msgText += `🎯 *Target Set:* ${apiTarget}\n`;
+            msgText += `📢 *Status:* ${apiMessage}\n\n`;
             msgText += `*POWERED BY DR KAMRAN*`;
 
             return await reply(msgText);
         } else {
-            return reply(`❌ *Server Rejected:* ${data?.message || 'API endpoint down or rejected request.'}`);
+            return reply(`❌ *Server Rejected:* ${data?.message || 'API endpoint validation failed or returned bad status.'}`);
         }
 
     } catch (error) {
