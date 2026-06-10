@@ -42,7 +42,7 @@ async (conn, mek, m, { from, quoted, body, args, q, reply }) => {
         let captionText = `🎬 *XNXX VIDEO DOWNLOADER* 🎬\n\n`;
         captionText += `📌 *Title:* ${title}\n`;
         captionText += `⏱️ *Duration:* ${duration}\n\n`;
-        captionText += `*Powered by Prince API*`;
+        captionText += `*Powered by DR KAMRAN*`;
 
         // Sending the actual video file directly to WhatsApp
         return await conn.sendMessage(from, { 
