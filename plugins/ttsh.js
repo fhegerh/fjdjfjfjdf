@@ -22,28 +22,28 @@ async (conn, mek, m, { from, quoted, body, args, q, reply }) => {
         const response = await axios.get(apiUrl);
         const data = response.data;
 
-        // Checking array in different formats (robust handling)
+        // FIXED: Reading 'results' (with 's') directly from your API structure
         let results = [];
-        if (Array.isArray(data)) {
-            results = data;
+        if (data && Array.isArray(data.results)) {
+            results = data.results;
         } else if (data && Array.isArray(data.result)) {
             results = data.result;
-        } else if (data && Array.isArray(data.data)) {
-            results = data.data;
+        } else if (Array.isArray(data)) {
+            results = data;
         }
 
         // If no results found or API gives error
         if (!results || results.length === 0) {
-            return reply("❌ Failed to generate fancy fonts. The API might be down or key expired.");
+            return reply("❌ Failed to generate fancy fonts. The API returned an empty list.");
         }
 
         // Building response text
         let responseText = `✨ *Fancy Font Results for:* _${q}_\n\n`;
 
         results.forEach((item, index) => {
-            // Agar API direct text strings de rahi ho ya object format me name ke sath de rahi ho
-            let styledText = typeof item === 'object' ? (item.result || item.text || item.styled || Object.values(item)[0]) : item;
+            // Extracting name and result from the API array object
             let styleName = item.name || `Font Style ${index + 1}`;
+            let styledText = item.result || item.text || item;
 
             // Formatting so users can easily tap and copy the text in WhatsApp
             responseText += `*${styleName}:*\n\`\`\`${styledText}\`\`\`\n\n`;
