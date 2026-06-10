@@ -10,43 +10,64 @@ cmd({
 },
 async (conn, mek, m, { from, quoted, body, args, q, reply }) => {
     try {
-        // Agar user query enter nahi karta
+        // Query check
         if (!q) return reply("❌ Please provide a search query!\n\n*Example:* .tiktoksearch funny cats");
 
-        // Reacting or sending a temporary waiting message
+        // Waiting message
         await reply("⏳ Searching TikTok, please wait...");
 
-        // API URL setup
+        // API URL
         const apiUrl = `https://api.princetechn.com/api/search/tiktoksearch?apikey=prince&query=${encodeURIComponent(q)}`;
         
-        // Fetching data from Prince API
         const response = await axios.get(apiUrl);
         const data = response.data;
 
-        // Checking if data exists (API formats change, so we handle standard cases)
-        const results = data.result || data.data;
+        // [DEBUG] Yeh aapke bot ke terminal (cmd/heroku) me check karne ke liye hai ke API kya bhej rahi hai
+        console.log("=== TIKTOK API RESPONSE ===", JSON.stringify(data, null, 2));
 
-        if (!results || results.length === 0) {
-            return reply("❌ No results found for your search.");
+        // Agar API status false bhejti hai ya koi error message aata hai
+        if (data.status === false || data.error) {
+            return reply(`❌ *API Error:* ${data.message || data.error || "Something went wrong with the API key or server."}`);
         }
 
-        // Formatting the response text
-        let responseText = `🎵 *TikTok Search Results for:* _${q}_\n\n`;
+        // Data arrays ke alag-alag formats ko detect karne ke liye robust check
+        let results = [];
+        if (Array.isArray(data)) {
+            results = data;
+        } else if (data && Array.isArray(data.result)) {
+            results = data.result;
+        } else if (data && Array.isArray(data.data)) {
+            results = data.data;
+        } else if (data && Array.isArray(data.results)) {
+            results = data.results;
+        }
 
-        // Limiting to top 5 results to avoid a huge wall of text
-        const maxResults = Math.min(results.length, 5);
+        // Agar array khali miley
+        if (!results || results.length === 0) {
+            return reply("❌ No results found for your search. The API returned an empty list.");
+        }
+
+        // Formatting response text
+        let responseText = `🎵 *TikTok Search Results for:* _${q}_\n\n`;
+        const maxResults = Math.min(results.length, 5); // Sirf top 5 results dikhane ke liye
 
         for (let i = 0; i < maxResults; i++) {
             let video = results[i];
-            responseText += `*${i + 1}. Title:* ${video.title || 'No Title'}\n`;
-            responseText += `👤 *Author:* ${video.author?.nickname || video.author || 'Unknown'}\n`;
-            responseText += `🔗 *Link:* ${video.url || video.link || 'N/A'}\n`;
+            
+            // Checking multi-format keys (jo bhi key available ho utha le)
+            let title = video.title || video.desc || video.description || 'No Title';
+            let author = video.author?.nickname || video.author?.username || video.author || 'Unknown';
+            let link = video.url || video.link || video.play || 'N/A';
+
+            responseText += `*${i + 1}. Title:* ${title}\n`;
+            responseText += `👤 *Author:* ${author}\n`;
+            responseText += `🔗 *Link:* ${link}\n`;
             responseText += `───────────────────\n\n`;
         }
 
-        responseText += `*Powered by Prince API*`;
+        responseText += `*Powered by DR KAMRAN*`;
 
-        // Send the final list of videos
+        // Send results
         return await conn.sendMessage(from, { text: responseText }, { quoted: mek });
 
     } catch (error) {
