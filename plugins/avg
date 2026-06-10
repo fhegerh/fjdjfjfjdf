@@ -6,7 +6,7 @@ const Seedr = require('seedr');
 const API_BASE = "https://vajira-official-apis.vercel.app/api";
 const API_KEY = "vajira-VajiraOfficial2003";
 
-// Seedr Credentials - updated
+// Seedr Credentials
 const seedrConfig = {
     email: "drkamran8309@gmail.com",
     password: "kamram00#"
@@ -20,106 +20,138 @@ cmd({
     use: ".sublk [movie name]",
     filename: __filename
 },
-async (socket, msg, mek, { from, q, reply }) => {
+async (conn, mek, m, { from, q, reply }) => {
     try {
-        if (!q) return reply("❌ Usage:.sublk <movie name>");
-        await socket.sendMessage(from, { react: { text: "🔍", key: mek.key } });
+        if (!q) return reply("❌ *Format:* `.sublk [movie name]`");
+        
+        // Fixed: Using standard framework connection variables
+        await conn.sendMessage(from, { react: { text: "🔍", key: mek.key } });
 
         const { data: searchRes } = await axios.get(`${API_BASE}/sublk?apikey=${API_KEY}&q=${encodeURIComponent(q)}`);
-        if (!searchRes.status ||!searchRes.data.length) return reply("❌ No results found.");
+        if (!searchRes.status || !searchRes.data || !searchRes.data.length) {
+            return reply("❌ No results found.");
+        }
 
         const list = searchRes.data.slice(0, 10);
         let text = `🎬 *ꜰʟᴇxᴀ ᴍᴏᴠɪᴇ ꜱᴇᴀʀᴄʜ*\n\n`;
         list.forEach((m, i) => { text += `*${i + 1}.* ${m.title}\n`; });
         text += `\n📥 *Reply with the number to select*`;
 
-        const sent = await socket.sendMessage(from, { text }, { quoted: mek });
+        const sent = await conn.sendMessage(from, { text }, { quoted: mek });
 
+        // --- FIRST LISTENER: TO SELECT MOVIE ---
         const handler = async (up) => {
-            const incoming = up.messages?.[0];
-            if (!incoming?.message || incoming.key.remoteJid!== from) return;
-            if (incoming.message.extendedTextMessage?.contextInfo?.stanzaId!== sent.key.id) return;
+            try {
+                const incoming = up.messages?.[0];
+                if (!incoming?.message || incoming.key.remoteJid !== from) return;
 
-            const index = parseInt(incoming.message.conversation || incoming.message.extendedTextMessage?.text);
-            if (isNaN(index) ||!list[index - 1]) return;
+                // Robust text extraction from conversation or reply
+                const textContent = incoming.message.conversation || incoming.message.extendedTextMessage?.text || "";
+                const index = parseInt(textContent.trim());
+                
+                if (isNaN(index) || !list[index - 1]) return;
 
-            socket.ev.off("messages.upsert", handler);
-            const selected = list[index - 1];
+                // Immediately turn off listener to avoid multiple triggers
+                conn.ev.off("messages.upsert", handler);
+                const selected = list[index - 1];
 
-            const { data: detailRes } = await axios.get(`${API_BASE}/sublkdl?apikey=${API_KEY}&url=${encodeURIComponent(selected.url)}`);
-            const movie = detailRes.data;
+                await conn.sendMessage(from, { react: { text: "⏳", key: incoming.key } });
 
-            if (!movie.torrents?.length) return reply("❌ No torrents found.");
+                const { data: detailRes } = await axios.get(`${API_BASE}/sublkdl?apikey=${API_KEY}&url=${encodeURIComponent(selected.url)}`);
+                const movie = detailRes.data;
 
-            let qText = `🎬 *${movie.title.toUpperCase()}*\n\n` +
-                        `📅 *Date:* ${movie.date}\n` +
-                        `⭐ *IMDb:* ${movie.imdbRate}\n` +
-                        `🎭 *Genres:* ${movie.genres.join(", ")}\n\n` +
-                        `📥 *Select Quality to Download:*\n`;
-            movie.torrents.forEach((t, i) => { qText += `*${i + 1}.* ${t.quality} (${t.size})\n`; });
-            qText += `\n> *${config.BOT_NAME || 'KAMRAN-MD'}*`;
+                if (!movie || !movie.torrents?.length) return reply("❌ No torrents found for this movie.");
 
-            const infoMsg = await socket.sendMessage(from, { image: { url: movie.image }, caption: qText }, { quoted: incoming });
+                let qText = `🎬 *${movie.title.toUpperCase()}*\n\n` +
+                            `📅 *Date:* ${movie.date || 'N/A'}\n` +
+                            `⭐ *IMDb:* ${movie.imdbRate || 'N/A'}\n` +
+                            `🎭 *Genres:* ${Array.isArray(movie.genres) ? movie.genres.join(", ") : 'N/A'}\n\n` +
+                            `📥 *Select Quality to Download:*\n`;
+                
+                movie.torrents.forEach((t, i) => { qText += `*${i + 1}.* ${t.quality} (${t.size})\n`; });
+                qText += `\n> *${config.BOT_NAME || 'KAMRAN-MD'}*`;
 
-            const dlHandler = async (up2) => {
-                const incoming2 = up2.messages?.[0];
-                if (!incoming2?.message || incoming2.key.remoteJid!== from) return;
-                if (incoming2.message.extendedTextMessage?.contextInfo?.stanzaId!== infoMsg.key.id) return;
+                const infoMsg = await conn.sendMessage(from, { image: { url: movie.image }, caption: qText }, { quoted: incoming });
 
-                const choice = parseInt(incoming2.message.conversation || incoming2.message.extendedTextMessage?.text);
-                if (isNaN(choice) ||!movie.torrents[choice - 1]) return;
+                // --- SECOND LISTENER: TO SELECT QUALITY ---
+                const dlHandler = async (up2) => {
+                    try {
+                        const incoming2 = up2.messages?.[0];
+                        if (!incoming2?.message || incoming2.key.remoteJid !== from) return;
 
-                socket.ev.off("messages.upsert", dlHandler);
-                const torrent = movie.torrents[choice - 1];
-                await socket.sendMessage(from, { react: { text: "⏳", key: incoming2.key } });
+                        const dlTextContent = incoming2.message.conversation || incoming2.message.extendedTextMessage?.text || "";
+                        const choice = parseInt(dlTextContent.trim());
+                        
+                        if (isNaN(choice) || !movie.torrents[choice - 1]) return;
 
-                try {
-                    await reply("📥 *Adding to Seedr cloud...*");
+                        conn.ev.off("messages.upsert", dlHandler);
+                        const torrent = movie.torrents[choice - 1];
+                        
+                        await conn.sendMessage(from, { react: { text: "⏳", key: incoming2.key } });
+                        await reply("📥 *Adding torrent to Seedr cloud... Please wait.*");
 
-                    const seedr = new Seedr();
-                    await seedr.login(seedrConfig.email, seedrConfig.password);
+                        const seedr = new Seedr();
+                        await seedr.login(seedrConfig.email, seedrConfig.password);
 
-                    const hashMatch = torrent.url.match(/([a-fA-F0-9]{40})/);
-                    if (!hashMatch) throw new Error("Could not extract hash.");
+                        const hashMatch = torrent.url.match(/([a-fA-F0-9]{40})/);
+                        if (!hashMatch) throw new Error("Could not extract torrent hash info.");
 
-                    const magnet = `magnet:?xt=urn:btih:${hashMatch[1]}&dn=${encodeURIComponent(movie.title)}`;
-                    await seedr.addMagnet(magnet);
+                        const magnet = `magnet:?xt=urn:btih:${hashMatch[1]}&dn=${encodeURIComponent(movie.title)}`;
+                        await seedr.addMagnet(magnet);
 
-                    await new Promise(r => setTimeout(r, 5000));
+                        // Give seedr time to fetch files
+                        await new Promise(r => setTimeout(r, 6000));
 
-                    let fileInfo = null;
-                    let folderId = null;
+                        let fileInfo = null;
+                        let folderId = null;
 
-                    for (let i = 0; i < 30; i++) {
-                        const files = await seedr.getVideos();
-                        if (files?.[0]?.length > 0) {
-                            folderId = files[0][0].fid;
-                            fileInfo = await seedr.getFile(files[0][0].id);
-                            break;
+                        for (let i = 0; i < 20; i++) {
+                            const files = await seedr.getVideos();
+                            // Safe multi-dimensional array checking
+                            if (files && files[0] && files[0].length > 0) {
+                                folderId = files[0][0].fid;
+                                fileInfo = await seedr.getFile(files[0][0].id);
+                                break;
+                            }
+                            await new Promise(r => setTimeout(r, 4000));
                         }
-                        await new Promise(r => setTimeout(r, 5000));
+
+                        if (!fileInfo || !fileInfo.url) {
+                            throw new Error("Seedr processing timeout or 0 seeds found. Ensure file is under 2GB.");
+                        }
+
+                        await reply("🚀 *Downloading from Seedr and uploading to WhatsApp...*");
+
+                        await conn.sendMessage(from, {
+                            document: { url: fileInfo.url },
+                            mimetype: "video/mp4",
+                            fileName: `${movie.title} [${torrent.quality}].mp4`,
+                            caption: `🎬 *${movie.title}*\n📦 *Quality:* ${torrent.quality}\n\n> *${config.BOT_NAME || 'KAMRAN-MD'}*`
+                        }, { quoted: incoming2 });
+
+                        if (folderId) await seedr.deleteFolder(folderId);
+
+                    } catch (dlErr) {
+                        reply("❌ Seedr Error: " + dlErr.message);
+                        conn.ev.off("messages.upsert", dlHandler);
                     }
+                };
 
-                    if (!fileInfo ||!fileInfo.url) throw new Error("Seedr failed to prepare the file (or torrent has no seeds).");
+                conn.ev.on("messages.upsert", dlHandler);
+                // Safety timeout for second listener (5 minutes)
+                setTimeout(() => conn.ev.off("messages.upsert", dlHandler), 300000);
 
-                    await socket.sendMessage(from, {
-                        document: { url: fileInfo.url },
-                        mimetype: "video/mp4",
-                        fileName: `${movie.title} [${torrent.quality}].mp4`,
-                        caption: `🎬 *${movie.title}*\n📦 *Quality:* ${torrent.quality}\n\n> *${config.BOT_NAME || 'KAMRAN-MD'}*`
-                    }, { quoted: incoming2 });
-
-                    await seedr.deleteFolder(folderId);
-
-                } catch (e) {
-                    reply("❌ Seedr Error: " + e.message);
-                }
-            };
-            socket.ev.on("messages.upsert", dlHandler);
+            } catch (hErr) {
+                console.error(hErr);
+                conn.ev.off("messages.upsert", handler);
+            }
         };
-        socket.ev.on("messages.upsert", handler);
-        setTimeout(() => socket.ev.off("messages.upsert", handler), 300000);
+
+        conn.ev.on("messages.upsert", handler);
+        // Safety timeout for first listener (5 minutes)
+        setTimeout(() => conn.ev.off("messages.upsert", handler), 300000);
+
     } catch (e) {
-        reply("❌ Error: " + e.message);
+        reply("❌ System Error: " + e.message);
     }
 });
