@@ -10,9 +10,9 @@ cmd({
 },
 async (conn, mek, m, { from, quoted, body, args, q, reply }) => {
     try {
-        // Checking if the incoming message or quoted message contains an image
-        const isQuotedImage = quoted && (quoted.type === 'image' || quoted.mtype === 'imageMessage');
-        const isDirectImage = m.type === 'image' || m.mtype === 'imageMessage';
+        // Deep Nested Media Detection for both Quoted and Direct Captioned images
+        const isQuotedImage = quoted && (quoted.mtype === 'imageMessage' || (quoted.msg?.mimetype || quoted.mimetype || '').startsWith('image/'));
+        const isDirectImage = m.mtype === 'imageMessage' || (m.msg?.mimetype || m.mimetype || '').startsWith('image/') || !!m.message?.imageMessage || !!m.msg?.imageMessage;
 
         if (!isDirectImage && !isQuotedImage) {
             return reply("❌ Please reply to an image or send an image with the caption *.imgtoprompt*");
@@ -20,10 +20,9 @@ async (conn, mek, m, { from, quoted, body, args, q, reply }) => {
 
         await reply("📥 Downloading image from WhatsApp servers... Please wait.");
 
-        // Target message containing the media component
+        // Defining target container dynamically
         const targetMessage = quoted ? quoted : m;
         
-        // Dynamic media downloader block supporting major Baileys structures
         let buffer;
         try {
             if (typeof conn.downloadMediaMessage === 'function') {
@@ -32,10 +31,10 @@ async (conn, mek, m, { from, quoted, body, args, q, reply }) => {
                 const pathFile = await conn.downloadAndSaveMediaMessage(targetMessage);
                 const fs = require('fs');
                 buffer = fs.readFileSync(pathFile);
-                fs.unlinkSync(pathFile); // Immediate cleanup to save disk space
+                fs.unlinkSync(pathFile); // Immediate cleanup
             } else {
-                // Global baileys library dependency fallback
                 const { downloadMediaMessage } = require('@whiskeysockets/baileys');
+                // Target the exact message payload structure
                 buffer = await downloadMediaMessage(targetMessage, 'buffer', {}, { logger: console });
             }
         } catch (downloadError) {
@@ -45,7 +44,7 @@ async (conn, mek, m, { from, quoted, body, args, q, reply }) => {
 
         if (!buffer) return reply("❌ Extraction failed. Media buffer is empty.");
 
-        // Encoding binary buffer straight to Base64 (No local file required)
+        // Encoding buffer directly to base64
         const base64Image = buffer.toString('base64');
         const mimeType = (targetMessage.msg || targetMessage).mimetype || 'image/jpeg';
 
@@ -54,7 +53,6 @@ async (conn, mek, m, { from, quoted, body, args, q, reply }) => {
         const BASE_URL = "https://aiconvert.online/api";
         const USER_AGENT = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Mobile Safari/537.36";
 
-        // PHASE 1: Submitting the base64 job payload
         const payload = {
             imageData: base64Image,
             mimeType: mimeType,
@@ -75,19 +73,17 @@ async (conn, mek, m, { from, quoted, body, args, q, reply }) => {
         if (typeof submitData === 'string') submitData = JSON.parse(submitData);
 
         if (!submitData || !submitData.taskId) {
-            return reply(`❌ AI submission rejected: ${submitData?.message || "Invalid API response structure"}`);
+            return reply(`❌ AI submission rejected: ${submitData?.message || "Invalid API response"}`);
         }
 
         const taskId = submitData.taskId;
         await reply("🧠 Image received! AI is processing layout details...");
 
-        // PHASE 2: Polling loop to wait for completion status
         let maxRetries = 35;
         let delayMs = 2000;
         let generatedPrompt = null;
 
         for (let i = 0; i < maxRetries; i++) {
-            // Wait for 2 seconds before checking status
             await new Promise(resolve => setTimeout(resolve, delayMs));
 
             const statusResponse = await axios.get(`${BASE_URL}/check-status-kv`, {
@@ -106,18 +102,17 @@ async (conn, mek, m, { from, quoted, body, args, q, reply }) => {
                 generatedPrompt = statusData.result.generatedPrompt;
                 break;
             } else if (statusData.status === "FAILED") {
-                return reply(`❌ AI engine threw an error: ${statusData.message || "Unknown pipeline issue."}`);
+                return reply(`❌ AI engine error: ${statusData.message || "Pipeline issue."}`);
             }
         }
 
         if (!generatedPrompt) {
-            return reply("❌ Processing timeout. Server did not return prompt updates.");
+            return reply("❌ Processing timeout. Server did not return updates.");
         }
 
-        // PHASE 3: Printing formatted markdown response
         let txt = `🎨 *IMAGE TO AI PROMPT GENERATOR* 🎨\n\n`;
         txt += `📝 *Generated Prompt:*\n\`\`\`${generatedPrompt}\`\`\`\n\n`;
-        txt += `*Powered by DR KAMRAN*`;
+        txt += `*POWERED BY DR KAMRAN*`;
 
         return await reply(txt);
 
