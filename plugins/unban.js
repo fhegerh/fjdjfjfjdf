@@ -1,4 +1,4 @@
-const { cmd } = require('../inconnuboy');
+const { cmd } = require('../command');
 
 // Unban Appeal Commands 1-50
 cmd({
