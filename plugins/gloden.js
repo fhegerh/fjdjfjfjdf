@@ -47,22 +47,34 @@ async (conn, mek, m, { from, quoted, body, args, q, reply }) => {
             // ------ SEARCH FLOW ------
             await reply(`⏳ Searching for "${q}"...`);
             
-            // Using the Search API provided by you
             const searchUrl = `https://api.princetechn.com/api/search/xvideossearch?apikey=prince&query=${encodeURIComponent(q)}`;
             const response = await axios.get(searchUrl);
-            const data = response.data;
+            
+            // FIX 1: Forcefully parsing string to JSON if API doesn't send correct headers
+            let data = response.data;
+            if (typeof data === 'string') {
+                try {
+                    data = JSON.parse(data);
+                } catch (e) {
+                    return reply("❌ Failed to parse API response. Server might be sending invalid data.");
+                }
+            }
 
-            // Handle standard response structures robustly
-            let results = data.results || data.result || data.data || [];
-            if (!Array.isArray(results) && data.result && Array.isArray(data.result)) {
+            // FIX 2: Matching exact structure from your screenshot (1000255654.jpg)
+            let results = [];
+            if (data && Array.isArray(data.results)) {
+                results = data.results;
+            } else if (data && Array.isArray(data.result)) {
                 results = data.result;
+            } else if (Array.isArray(data)) {
+                results = data;
             }
 
             if (!results || results.length === 0) {
                 return reply("❌ No results found for your search query.");
             }
 
-            // Save search results URLs in global cache for this specific chat
+            // Resetting and saving search results URLs in global cache for this chat
             global.xnxxCache[from] = [];
 
             let responseText = `🎬 *XNXX SEARCH RESULTS* 🎬\n\n`;
@@ -75,7 +87,9 @@ async (conn, mek, m, { from, quoted, body, args, q, reply }) => {
                 let video = results[i];
                 let title = video.title || "No Title";
                 let duration = video.duration || "Unknown";
-                let videoLink = video.url || video.link;
+                
+                // FIX 3: Targetting video.link as per your API response screenshot
+                let videoLink = video.link || video.url;
 
                 if (videoLink) {
                     global.xnxxCache[from].push(videoLink); // Saving link to cache
@@ -102,7 +116,11 @@ async function handleDownload(videoUrl, conn, from, mek, reply) {
     try {
         const downloadApi = `https://api.princetechn.com/api/download/xnxxdl?apikey=prince&url=${encodeURIComponent(videoUrl)}`;
         const response = await axios.get(downloadApi);
-        const data = response.data;
+        
+        let data = response.data;
+        if (typeof data === 'string') {
+            data = JSON.parse(data);
+        }
 
         if (!data || data.success !== true || !data.result) {
             return reply("❌ Download failed. The API server returned an error or link is broken.");
