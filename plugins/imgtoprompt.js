@@ -1,123 +1,91 @@
-const { cmd } = require('../command');
-const axios = require('axios');
+/**
+ * PROJECT     : Uguu Uploader
+ * AUTHOR      : BINTANG
+ * DESC        : Upload file ke uguu.se - Simple & Cepat
+ * USAGE       : node upp.js zaam_avatar.jpeg
+ */
 
-cmd({
-    pattern: "imgtoprompt",
-    alias: ["toprompt", "image2prompt", "promptgen"],
-    desc: "Generate detailed midjourney/stable-diffusion prompt from an image.",
-    category: "ai",
-    filename: __filename
-},
-async (conn, mek, m, { from, quoted, body, args, q, reply }) => {
-    try {
-        // Deep Nested Media Detection for both Quoted and Direct Captioned images
-        const isQuotedImage = quoted && (quoted.mtype === 'imageMessage' || (quoted.msg?.mimetype || quoted.mimetype || '').startsWith('image/'));
-        const isDirectImage = m.mtype === 'imageMessage' || (m.msg?.mimetype || m.mimetype || '').startsWith('image/') || !!m.message?.imageMessage || !!m.msg?.imageMessage;
+const axios = require("axios");
+const FormData = require("form-data");
+const fs = require("fs");
+const path = require("path");
 
-        if (!isDirectImage && !isQuotedImage) {
-            return reply("❌ Please reply to an image or send an image with the caption *.imgtoprompt*");
-        }
+const ENDPOINT = "https://uguu.se/upload.php";
+const USER_AGENT = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Mobile Safari/537.36";
 
-        await reply("📥 Downloading image from WhatsApp servers... Please wait.");
+async function unggah(lokasiBerkas) {
+  const jalurLengkap = path.resolve(lokasiBerkas);
 
-        // Defining target container dynamically
-        const targetMessage = quoted ? quoted : m;
-        
-        let buffer;
-        try {
-            if (typeof conn.downloadMediaMessage === 'function') {
-                buffer = await conn.downloadMediaMessage(targetMessage);
-            } else if (typeof conn.downloadAndSaveMediaMessage === 'function') {
-                const pathFile = await conn.downloadAndSaveMediaMessage(targetMessage);
-                const fs = require('fs');
-                buffer = fs.readFileSync(pathFile);
-                fs.unlinkSync(pathFile); // Immediate cleanup
-            } else {
-                const { downloadMediaMessage } = require('@whiskeysockets/baileys');
-                // Target the exact message payload structure
-                buffer = await downloadMediaMessage(targetMessage, 'buffer', {}, { logger: console });
-            }
-        } catch (downloadError) {
-            console.error(downloadError);
-            return reply("❌ Failed to download media. Please ensure the image is fully loaded.");
-        }
+  if (!fs.existsSync(jalurLengkap)) {
+    return {
+      status: "gagal",
+      author: "BINTANG",
+      code: 404,
+      input: lokasiBerkas,
+      url: null,
+      pesan: "Berkas gak ditemukan"
+    };
+  }
 
-        if (!buffer) return reply("❌ Extraction failed. Media buffer is empty.");
+  const form = new FormData();
 
-        // Encoding buffer directly to base64
-        const base64Image = buffer.toString('base64');
-        const mimeType = (targetMessage.msg || targetMessage).mimetype || 'image/jpeg';
+  form.append("files[]", fs.createReadStream(jalurLengkap), {
+    filename: path.basename(jalurLengkap),
+    contentType: "application/octet-stream"
+  });
 
-        await reply("⏳ Submitting data payload to Nano Banana Pro AI...");
-
-        const BASE_URL = "https://aiconvert.online/api";
-        const USER_AGENT = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Mobile Safari/537.36";
-
-        const payload = {
-            imageData: base64Image,
-            mimeType: mimeType,
-            language: "en",
-            promptType: "nano-banana-pro"
-        };
-
-        const submitResponse = await axios.post(`${BASE_URL}/submit-prompt-job`, payload, {
-            headers: {
-                "Content-Type": "application/json",
-                "User-Agent": USER_AGENT,
-                "Referer": "https://aiconvert.online/prompt-generator"
-            },
-            timeout: 30000
-        });
-
-        let submitData = submitResponse.data;
-        if (typeof submitData === 'string') submitData = JSON.parse(submitData);
-
-        if (!submitData || !submitData.taskId) {
-            return reply(`❌ AI submission rejected: ${submitData?.message || "Invalid API response"}`);
-        }
-
-        const taskId = submitData.taskId;
-        await reply("🧠 Image received! AI is processing layout details...");
-
-        let maxRetries = 35;
-        let delayMs = 2000;
-        let generatedPrompt = null;
-
-        for (let i = 0; i < maxRetries; i++) {
-            await new Promise(resolve => setTimeout(resolve, delayMs));
-
-            const statusResponse = await axios.get(`${BASE_URL}/check-status-kv`, {
-                params: { taskId: taskId },
-                headers: {
-                    "User-Agent": USER_AGENT,
-                    "Referer": "https://aiconvert.online/prompt-generator"
-                },
-                timeout: 10000
-            });
-
-            let statusData = statusResponse.data;
-            if (typeof statusData === 'string') statusData = JSON.parse(statusData);
-
-            if (statusData.status === "SUCCESS" && statusData.result) {
-                generatedPrompt = statusData.result.generatedPrompt;
-                break;
-            } else if (statusData.status === "FAILED") {
-                return reply(`❌ AI engine error: ${statusData.message || "Pipeline issue."}`);
-            }
-        }
-
-        if (!generatedPrompt) {
-            return reply("❌ Processing timeout. Server did not return updates.");
-        }
-
-        let txt = `🎨 *IMAGE TO AI PROMPT GENERATOR* 🎨\n\n`;
-        txt += `📝 *Generated Prompt:*\n\`\`\`${generatedPrompt}\`\`\`\n\n`;
-        txt += `*POWERED BY DR KAMRAN*`;
-
-        return await reply(txt);
-
-    } catch (error) {
-        console.error(error);
-        return reply(`❌ ImgToPrompt System Error: ${error.message}`);
+  const respon = await axios.post(ENDPOINT, form, {
+    timeout: 120000,
+    maxBodyLength: Infinity,
+    maxContentLength: Infinity,
+    validateStatus: () => true,
+    headers: {
+      ...form.getHeaders(),
+      accept: "*/*",
+      origin: "https://uguu.se",
+      referer: "https://uguu.se/",
+      "user-agent": USER_AGENT,
+      "sec-ch-ua": '"Google Chrome";v="147", "Not.A/Brand";v="8", "Chromium";v="147"',
+      "sec-ch-ua-mobile": "?1",
+      "sec-ch-ua-platform": '"Android"',
+      "sec-fetch-site": "same-origin",
+      "sec-fetch-mode": "cors",
+      "sec-fetch-dest": "empty",
+      "accept-language": "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7"
     }
-});
+  });
+
+  const urlFinal = respon.data?.files?.[0]?.url || null;
+  const berhasil = respon.status === 200 && respon.data?.success === true && !!urlFinal;
+
+  return {
+    status: berhasil ? "sukses" : "gagal",
+    author: "BINTANG",
+    code: respon.status,
+    input: lokasiBerkas,
+    url: urlFinal,
+    pesan: berhasil ? "Upload berhasil" : "Upload gagal"
+  };
+}
+
+async function main() {
+  const args = process.argv.slice(2);
+  const targetFile = args[0];
+
+  if (!targetFile) {
+    console.log(JSON.stringify({
+      status: "gagal",
+      author: "BINTANG",
+      code: 400,
+      input: null,
+      url: null,
+      pesan: "Cara pake: node upp.js namafile.png"
+    }, null, 2));
+    process.exit(0);
+  }
+
+  const hasil = await unggah(targetFile);
+  console.log(JSON.stringify(hasil, null, 2));
+}
+
+main();
