@@ -11,21 +11,37 @@ cmd({
 },
 async (conn, mek, m, { from, quoted, body, args, q, reply }) => {
     try {
-        // Target dynamic message structure validation
+        // Defining target container dynamically
         const targetMessage = quoted ? quoted : m;
-        const mimeType = (targetMessage.msg || targetMessage).mimetype || 
-                         (targetMessage.message?.imageMessage?.mimetype || 
-                          targetMessage.message?.videoMessage?.mimetype || 
-                          targetMessage.message?.audioMessage?.mimetype || 
-                          targetMessage.message?.documentMessage?.mimetype || '');
 
+        // Ultra-robust deep nested mime-type lookup across all possible Baileys shapes
+        let mimeType = targetMessage.msg?.mimetype || 
+                       targetMessage.mimetype || 
+                       targetMessage.message?.imageMessage?.mimetype || 
+                       targetMessage.message?.videoMessage?.mimetype || 
+                       targetMessage.message?.audioMessage?.mimetype || 
+                       targetMessage.message?.documentMessage?.mimetype || 
+                       targetMessage.msg?.imageMessage?.mimetype ||
+                       targetMessage.msg?.videoMessage?.mimetype ||
+                       targetMessage.viewOnceMessage?.message?.imageMessage?.mimetype ||
+                       targetMessage.viewOnceMessage?.message?.videoMessage?.mimetype || '';
+
+        // Emergency fallback check if object tree exists but string is blank
+        if (!mimeType) {
+            if (targetMessage.message?.imageMessage || targetMessage.msg?.imageMessage) mimeType = 'image/jpeg';
+            else if (targetMessage.message?.videoMessage || targetMessage.msg?.videoMessage) mimeType = 'video/mp4';
+            else if (targetMessage.message?.audioMessage || targetMessage.msg?.audioMessage) mimeType = 'audio/mp4';
+            else if (targetMessage.message?.documentMessage || targetMessage.msg?.documentMessage) mimeType = 'application/octet-stream';
+        }
+
+        // Ultimate validation cutoff
         if (!mimeType) {
             return reply("❌ Please reply to an image, video, audio, or document, or send media with the caption *.tourl*");
         }
 
-        await reply("📥 Downloading media from WhatsApp servers...");
+        await reply("📥 Downloading media from WhatsApp servers... Please wait.");
 
-        // Memory efficient extraction via buffer streams
+        // Safe buffer extraction block
         let buffer;
         try {
             if (typeof conn.downloadMediaMessage === 'function') {
@@ -34,7 +50,7 @@ async (conn, mek, m, { from, quoted, body, args, q, reply }) => {
                 const pathFile = await conn.downloadAndSaveMediaMessage(targetMessage);
                 const fs = require('fs');
                 buffer = fs.readFileSync(pathFile);
-                fs.unlinkSync(pathFile); // Immediate disk space cleaning
+                fs.unlinkSync(pathFile); // Disk cleanup
             } else {
                 const { downloadMediaMessage } = require('@whiskeysockets/baileys');
                 buffer = await downloadMediaMessage(targetMessage, 'buffer', {}, { logger: console });
@@ -48,14 +64,14 @@ async (conn, mek, m, { from, quoted, body, args, q, reply }) => {
 
         await reply("📤 Uploading payload to Uguu cloud storage...");
 
-        // Dynamic extension parser based on stream type mapping
+        // Parse clean file extension mapping
         let ext = 'bin';
         if (mimeType.includes('/')) {
             ext = mimeType.split('/')[1].split(';')[0];
         }
         if (ext === 'jpeg') ext = 'jpg';
 
-        // Initializing dynamic multipart payload without fs dependency
+        // Initializing dynamic multipart object stream
         const form = new FormData();
         form.append("files[]", buffer, {
             filename: `kamran_media_${Date.now()}.${ext}`,
@@ -90,7 +106,7 @@ async (conn, mek, m, { from, quoted, body, args, q, reply }) => {
             txt += `⚖️ *File Size:* ${sizeFinal}\n`;
             txt += `🔗 *Direct Link:* ${urlFinal}\n\n`;
             txt += `_Note: Uguu temporary server holds files for up to 24-72 hours only._\n\n`;
-            txt += `*Powered by DR KAMRAN*`;
+            txt += `*POWERED BY DR KAMRAN*`;
 
             return await reply(txt);
         } else {
