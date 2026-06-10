@@ -140,7 +140,7 @@ async function handleDownload(videoUrl, conn, from, mek, reply) {
         let captionText = `🎬 *XNXX DOWNLOADER* 🎬\n\n`;
         captionText += `📌 *Title:* ${title}\n`;
         captionText += `⏱️ *Duration:* ${duration}\n\n`;
-        captionText += `*Powered by Prince API*`;
+        captionText += `*Powered by DR KAMRAN*`;
 
         // Send direct video file
         return await conn.sendMessage(from, { 
