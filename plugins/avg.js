@@ -1,4 +1,4 @@
-const { cmd } = require('../index');
+const { cmd } = require('../command');
 const axios = require("axios");
 const config = require('../config');
 const Seedr = require('seedr');
