@@ -55,7 +55,7 @@ async (conn, mek, m, { from, quoted, body, args, q, reply }) => {
         }
 
         responseText += `\n───────────────────\n`;
-        responseText += `*Powered by Prince API*`;
+        responseText += `*Powered by DR KAMRAN*`;
 
         // Send definition
         return await conn.sendMessage(from, { text: responseText }, { quoted: mek });
