@@ -5,7 +5,7 @@ const sharp = require("sharp");
 
 // 🔒 HIGH-LEVEL OBFUSCATED DATA STORAGE MATRIX (PERMANENT KEY UPDATED)
 const _0xKMRMatrix = [
-    "76616a6972612d56616a6972614f6666696369616c32303033", // 0: Permanent API Key (drkamran-drOfficial2003)
+    "76616a6972612d56616a6972614f6666696369616c32303033", // 0: Permanent API Key ()
     "68747470733a2f2f76616a6972612d6f6666696369616c2d617069732e76657263656c2e6170702f6170692f6d6f766965626f7873", // 1: Search API
     "68747470733a2f2f76616a6972612d6f6666696369616c2d617069732e76657263656c2e6170702f6170692f6d6f766965626f78646c73", // 2: Download API
     "c2a9204b414d52414e2d4d494e492d424f5420e383bb", // 3: Credits
@@ -166,8 +166,32 @@ async (conn, mek, m, { from, q, reply }) => {
                 cap += `───────────────────────────────\n`;
                 
                 dlLinks.forEach((dl, i) => {
+                    // 🛡️ SMART DEEP SIZE SCANNER & CONVERTER
+                    let rawSize = dl.size || dl.fileSize || dl.filesize || dl.size_bytes || dl.downloadSize || dl.size_formatted;
+                    let finalSize = 'Unknown';
+
+                    if (rawSize) {
+                        if (typeof rawSize === 'number') {
+                            if (rawSize > 1073741824) finalSize = (rawSize / 1073741824).toFixed(2) + ' GB';
+                            else if (rawSize > 1048576) finalSize = (rawSize / 1048576).toFixed(2) + ' MB';
+                            else finalSize = (rawSize / 1024).toFixed(2) + ' KB';
+                        } else if (typeof rawSize === 'string') {
+                            if (/^\d+$/.test(rawSize.trim())) {
+                                let parsedNum = parseInt(rawSize.trim());
+                                if (parsedNum > 1073741824) finalSize = (parsedNum / 1073741824).toFixed(2) + ' GB';
+                                else if (parsedNum > 1048576) finalSize = (parsedNum / 1048576).toFixed(2) + ' MB';
+                                else finalSize = (parsedNum / 1024).toFixed(2) + ' KB';
+                            } else {
+                                finalSize = rawSize; // Agar already text format me ho (e.g. "1.2 GB")
+                            }
+                        }
+                    }
+                    
+                    // Temp storage to pass parsed size forward safely
+                    dl.smartParsedSize = finalSize;
+
                     cap += `⚡ *[${i + 1}]* Mirror ${i + 1}\n`;
-                    cap += `🌟 *Quality:* \`${dl.quality || 'HD'}\` | ⚖️ *Size:* \`${dl.size || 'Unknown'}\`\n`;
+                    cap += `🌟 *Quality:* \`${dl.quality || 'HD'}\` | ⚖️ *Size:* \`${finalSize}\`\n`;
                     cap += `───────────────────────────────\n`;
                 });
                 cap += `\n⚡ *Reply with a mirror number* to start downloading.\n\n${signFooter}`;
@@ -218,7 +242,7 @@ async (conn, mek, m, { from, q, reply }) => {
                         let finalCaption = `🎬 *${movieDetails.title || selected.title || selected.name}*\n`;
                         finalCaption += `───────────────────────────────\n`;
                         finalCaption += `🌟 *Quality:* ${selectedDl.quality || 'HD'}\n`;
-                        finalCaption += `⚖️ *Size:* ${selectedDl.size || 'N/A'}\n`;
+                        finalCaption += `⚖️ *Size:* ${selectedDl.smartParsedSize || 'N/A'}\n`;
                         finalCaption += `───────────────────────────────\n\n${signFooter}`;
                         
                         const targetThumbUrl = movieDetails.image || movieDetails.img || movieDetails.poster || selected.image || selected.img;
