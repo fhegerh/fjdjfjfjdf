@@ -1,6 +1,6 @@
 const axios = require('axios');
 const { cmd } = require('../command');
-const config = require("../config");
+const config = require("../../config");
 const sharp = require("sharp");
 
 // Helper function to process high-compatibility jpeg thumbnails
@@ -28,7 +28,6 @@ cmd({
 },
 async (conn, mek, m, { from, l, quoted, body, isCmd, command, args, q, isGroup, sender, senderNumber, botNumber2, botNumber, pushname, isMe, isOwner, groupMetadata, groupName, participants, groupAdmins, isBotAdmins, isAdmins, reply }) => {
     
-    // Aapke code ke client bindings ko yahan normalise kiya gaya hai
     const client = conn; 
     const react = async (emoji) => {
         await client.sendMessage(from, { react: { text: emoji, key: mek.key } });
@@ -70,12 +69,10 @@ async (conn, mek, m, { from, l, quoted, body, isCmd, command, args, q, isGroup, 
 
         listText += `*🔢 Reply with a number to select your choice*\n\n> © KAMRAN-MINI-BOT ッ`;
 
-        const sentSearch = await client.sendMessage(from, {
+        await client.sendMessage(from, {
             image: { url: results[0].image || "https://placehold.co/600x400?text=No+Poster" },
             caption: listText
         }, { quoted: mek });
-
-        const searchMsgId = sentSearch.key.id;
 
         // Timeouts reference variables
         let detailsTimeout, downloadTimeout;
@@ -83,111 +80,115 @@ async (conn, mek, m, { from, l, quoted, body, isCmd, command, args, q, isGroup, 
         // ================= INTERACTIVE STEP: DETAILS HANDLER =================
         const detailsHandler = async (update) => {
             const msg = update.messages[0];
-            if (!msg?.message || msg.key.remoteJid !== from) return;
+            if (!msg?.message || msg.key.remoteJid !== from || msg.key.fromMe) return;
 
-            const ctx = msg.message.extendedTextMessage?.contextInfo || msg.message.conversation?.contextInfo;
-            if (ctx?.stanzaId !== searchMsgId) return;
-
+            // Simple text extraction (No strict Stanza ID check to avoid getting stuck)
             const choice = (msg.message.conversation || msg.message.extendedTextMessage?.text || "").trim();
             const num = parseInt(choice);
+            
+            // Agar input valid number nahi hai toh ignore karein taaki normal chat chalti rahe
             if (isNaN(num) || num < 1 || num > results.length) return;
             
             const selected = results[num - 1];
             if (!selected) return;
 
-            // Listener off aur timeout clear karein loop aur crash se bachne ke liye
+            // Listener aur timeout clear karein taaki double execute na ho
             client.ev.off("messages.upsert", detailsHandler);
             clearTimeout(detailsTimeout);
 
             await client.sendMessage(from, { react: { text: "⏳", key: msg.key } });
 
-            const detailResponse = await axios.get(downloadApiUrl, {
-                params: { apikey: apiKey, url: selected.link },
-                timeout: 30000
-            });
+            try {
+                const detailResponse = await axios.get(downloadApiUrl, {
+                    params: { apikey: apiKey, url: selected.link },
+                    timeout: 45000 // API late response deti hai isliye timeout barha diya
+                });
 
-            if (detailResponse.status !== 200 || !detailResponse.data || !detailResponse.data.result) {
-                await client.sendMessage(from, { react: { text: "❌", key: msg.key } });
-                return reply("❌ Failed to pull download properties for this item.");
-            }
+                if (detailResponse.status !== 200 || !detailResponse.data || !detailResponse.data.result) {
+                    await client.sendMessage(from, { react: { text: "❌", key: msg.key } });
+                    return reply("❌ Failed to pull download properties for this item. API might be slow.");
+                }
 
-            const movieDetails = detailResponse.data.result;
-            const dlLinks = movieDetails.downloads || [];
+                const movieDetails = detailResponse.data.result;
+                const dlLinks = movieDetails.downloads || [];
 
-            if (dlLinks.length === 0) {
-                await client.sendMessage(from, { react: { text: "❌", key: msg.key } });
-                return reply("❌ No downloadable files were located for this selection.");
-            }
+                if (dlLinks.length === 0) {
+                    await client.sendMessage(from, { react: { text: "❌", key: msg.key } });
+                    return reply("❌ No downloadable files were located for this selection.");
+                }
 
-            let cap = `🎬 *${movieDetails.title || selected.title}*\n\n`;
-            cap += `ℹ️ *Description:* ${movieDetails.description || 'No description available'}\n`;
-            cap += `🎭 *Genres:* ${movieDetails.genres || 'N/A'}\n`;
-            cap += `📅 *Release Date:* ${movieDetails.release || 'N/A'}\n`;
-            cap += `⭐ *Rating:* ${movieDetails.rating || selected.rate}\n\n`;
-            cap += `┌───────────────────\n`;
-            cap += `│ 📂 *Available Download Mirrors:*\n`;
-            
-            dlLinks.forEach((dl, i) => {
-                cap += `│ *${i + 1}* ☛ Mirror ${i + 1} - Quality: [${dl.quality || '720p'}] (${dl.size || 'Unknown'})\n`;
-            });
-            cap += `└───────────────────\n\n`;
-            cap += `*🔢 Reply a number to begin download submission*\n\n> © KAMRAN-MINI-BOT ッ`;
-
-            const sentDetail = await client.sendMessage(from, {
-                image: { url: movieDetails.image || selected.image || "https://placehold.co/600x400?text=No+Poster" },
-                caption: cap
-            }, { quoted: msg });
-
-            const detailMsgId = sentDetail.key.id;
-
-            // ================= INTERACTIVE STEP: DOWNLOAD HANDLER =================
-            const downloadHandler = async (up) => {
-                const dlMsg = up.messages[0];
-                if (!dlMsg?.message || dlMsg.key.remoteJid !== from) return;
-
-                const dlCtx = dlMsg.message.extendedTextMessage?.contextInfo || dlMsg.message.conversation?.contextInfo;
-                if (dlCtx?.stanzaId !== detailMsgId) return;
-
-                const pick = (dlMsg.message.conversation || dlMsg.message.extendedTextMessage?.text || "").trim();
-                const dlNum = parseInt(pick);
-                if (isNaN(dlNum) || dlNum < 1 || dlNum > dlLinks.length) return;
-
-                const selectedDl = dlLinks[dlNum - 1];
-                if (!selectedDl) return;
-
-                // Download start hote hi handler aur memory clear karein
-                client.ev.off("messages.upsert", downloadHandler);
-                clearTimeout(downloadTimeout);
-
-                await client.sendMessage(from, { react: { text: "📥", key: dlMsg.key } });
+                let cap = `🎬 *${movieDetails.title || selected.title}*\n\n`;
+                cap += `ℹ️ *Description:* ${movieDetails.description || 'No description available'}\n`;
+                cap += `🎭 *Genres:* ${movieDetails.genres || 'N/A'}\n`;
+                cap += `📅 *Release Date:* ${movieDetails.release || 'N/A'}\n`;
+                cap += `⭐ *Rating:* ${movieDetails.rating || selected.rate}\n\n`;
+                cap += `┌───────────────────\n`;
+                cap += `│ 📂 *Available Download Mirrors:*\n`;
                 
-                const targetFileUrl = selectedDl.direct;
-                const cleanFileName = `${(movieDetails.title || selected.title).replace(/[^a-zA-Z0-9 ]/g, "_")}_${selectedDl.quality || '720p'}.mp4`;
-
-                await reply(`🚀 Processing your movie file request... Sending Document now.`);
+                dlLinks.forEach((dl, i) => {
+                    cap += `│ *${i + 1}* ☛ Mirror ${i + 1} - Quality: [${dl.quality || '720p'}] (${dl.size || 'Unknown'})\n`;
+                });
+                cap += `└───────────────────\n\n`;
+                cap += `*🔢 Reply a number to begin download submission*\n\n> © KAMRAN-MINI-BOT ッ`;
 
                 await client.sendMessage(from, {
-                    document: { url: targetFileUrl },
-                    mimetype: "video/mp4",
-                    fileName: cleanFileName,
-                    jpegThumbnail: await getThumbnailBuffer(movieDetails.image || selected.image),
-                    caption: `🎬 *${movieDetails.title || selected.title}*\n⚖️ *Size:* ${selectedDl.size || 'N/A'}\n🌟 *Quality:* ${selectedDl.quality || '720p'}\n\n> © KAMRAN-MINI-BOT ッ`
-                }, { quoted: dlMsg });
+                    image: { url: movieDetails.image || selected.image || "https://placehold.co/600x400?text=No+Poster" },
+                    caption: cap
+                }, { quoted: msg });
 
-                await client.sendMessage(from, { react: { text: "✅", key: dlMsg.key } });
-            };
+                // ================= INTERACTIVE STEP: DOWNLOAD HANDLER =================
+                const downloadHandler = async (up) => {
+                    const dlMsg = up.messages[0];
+                    if (!dlMsg?.message || dlMsg.key.remoteJid !== from || dlMsg.key.fromMe) return;
 
-            client.ev.on("messages.upsert", downloadHandler);
-            
-            // 5 minute ka timeout (300000ms) for step 2
-            downloadTimeout = setTimeout(() => {
-                client.ev.off("messages.upsert", downloadHandler);
-            }, 300000);
+                    const pick = (dlMsg.message.conversation || dlMsg.message.extendedTextMessage?.text || "").trim();
+                    const dlNum = parseInt(pick);
+                    if (isNaN(dlNum) || dlNum < 1 || dlNum > dlLinks.length) return;
+
+                    const selectedDl = dlLinks[dlNum - 1];
+                    if (!selectedDl) return;
+
+                    client.ev.off("messages.upsert", downloadHandler);
+                    clearTimeout(downloadTimeout);
+
+                    await client.sendMessage(from, { react: { text: "📥", key: dlMsg.key } });
+                    
+                    const targetFileUrl = selectedDl.direct;
+                    const cleanFileName = `${(movieDetails.title || selected.title).replace(/[^a-zA-Z0-9 ]/g, "_")}_${selectedDl.quality || '720p'}.mp4`;
+
+                    await reply(`🚀 Processing your movie file request... Sending Document now.`);
+
+                    try {
+                        await client.sendMessage(from, {
+                            document: { url: targetFileUrl },
+                            mimetype: "video/mp4",
+                            fileName: cleanFileName,
+                            jpegThumbnail: await getThumbnailBuffer(movieDetails.image || selected.image),
+                            caption: `🎬 *${movieDetails.title || selected.title}*\n⚖️ *Size:* ${selectedDl.size || 'N/A'}\n🌟 *Quality:* ${selectedDl.quality || '720p'}\n\n> © KAMRAN-MINI-BOT ッ`
+                        }, { quoted: dlMsg });
+
+                        await client.sendMessage(from, { react: { text: "✅", key: dlMsg.key } });
+                    } catch (dlErr) {
+                        console.error("Download Link Sending Error:", dlErr.message);
+                        reply(`❌ Error sending file. The direct link might be expired or too heavy.`);
+                    }
+                };
+
+                client.ev.on("messages.upsert", downloadHandler);
+                
+                downloadTimeout = setTimeout(() => {
+                    client.ev.off("messages.upsert", downloadHandler);
+                }, 300000);
+
+            } catch (apiErr) {
+                console.error("API Detail Error:", apiErr.message);
+                await client.sendMessage(from, { react: { text: "❌", key: msg.key } });
+                reply("❌ API server ne response nahi diya. Please try again later.");
+            }
         };
 
         client.ev.on("messages.upsert", detailsHandler);
         
-        // 5 minute ka timeout for step 1
         detailsTimeout = setTimeout(() => {
             client.ev.off("messages.upsert", detailsHandler);
         }, 300000);
