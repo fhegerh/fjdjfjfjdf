@@ -1,6 +1,6 @@
 const axios = require('axios');
 const { cmd } = require('../command');
-const config = require("../../config");
+const config = require("../config");
 const sharp = require("sharp");
 
 // Helper function to process high-compatibility jpeg thumbnails
