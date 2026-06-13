@@ -4,7 +4,6 @@ const axios = require('axios');
 const API = "https://api.rifkyshre.biz.id";
 const ROUTE = "/scrape/snapvideo";
 
-// Scraper Function
 async function snapvideo(url) {
   try {
     const res = await axios.post(
@@ -21,13 +20,13 @@ async function snapvideo(url) {
     if (!body?.status) {
       return {
         Status: false,
-        Error: body?.error ?? "Unknown error",
+        Error: body?.error || body?.message || "Unknown API error",
       };
     }
 
     return {
       Status: true,
-      Result: body.data, // Ismein media urls, title wagerah hoga
+      Result: body.data,
     };
   } catch (e) {
     return {
@@ -37,18 +36,16 @@ async function snapvideo(url) {
   }
 }
 
-// Bot Command
 cmd({
     pattern: "download",
-    alias: ["dl", "snapdl", "insta", "tw", "fb"],
+    alias: ["dl", "snapdl", "insta", "tw", "fb", "tiktok"],
     category: "downloader",
-    description: "Download videos from TikTok, Instagram, Twitter, FB, etc.",
+    description: "Download videos from TikTok, Instagram, Facebook, etc.",
     use: '.download <video_url>',
 }, async (conn, mek, m, { q, reply }) => {
     
-    if (!q) return reply("❌ Please provide a valid video link!\n\n*Supported platforms:* TikTok, Instagram, Twitter/X, Facebook, Threads, etc.");
+    if (!q) return reply("❌ Please link dein! TikTok, Facebook, Instagram links supported hain.");
 
-    // Simple URL validation
     if (!q.startsWith("http://") && !q.startsWith("https://")) {
         return reply("❌ Invalid URL format.");
     }
@@ -63,23 +60,42 @@ cmd({
             return reply(`❌ Error: ${data.Error}`);
         }
 
-        // Response handling
         const mediaData = data.Result;
-        
-        // Snapvideo tools aam taur par resources array ya direct media url deta hai.
-        // Agar response mein 'medias' ya 'links' array ho toh sabse best quality (video) nikalte hain:
-        let videoUrl = mediaData.url || (mediaData.medias && mediaData.medias[0]?.url);
-        let title = mediaData.title || mediaData.message || "Universal Downloader";
+        let videoUrl = null;
 
-        if (!videoUrl) {
-            // Agar formats array hai toh usme check karein
-            const videoLink = mediaData.links?.find(l => l.type === 'video' || l.extension === 'mp4');
-            videoUrl = videoLink ? videoLink.url : null;
+        // --- NEW DEEP SEARCH KEY PARSING ---
+        // 1. Direct structures
+        if (typeof mediaData === 'string' && mediaData.startsWith('http')) {
+            videoUrl = mediaData;
+        } else if (mediaData) {
+            videoUrl = mediaData.url || mediaData.videoUrl || mediaData.play || mediaData.download || mediaData.hd || mediaData.sd;
+            
+            // 2. Agar array 'medias' ke andar data hai
+            if (!videoUrl && Array.isArray(mediaData.medias)) {
+                videoUrl = mediaData.medias.find(m => m.type?.includes('video') || m.extension === 'mp4' || m.url)?.url || mediaData.medias[0]?.url;
+            }
+            
+            // 3. Agar array 'links' ke andar data hai
+            if (!videoUrl && Array.isArray(mediaData.links)) {
+                videoUrl = mediaData.links.find(l => l.type === 'video' || l.url?.includes('mp4'))?.url || mediaData.links[0]?.url;
+            }
+
+            // 4. Agar array 'urls' ya 'download_list' automatic nesting mein ho
+            if (!videoUrl && Array.isArray(mediaData)) {
+                videoUrl = mediaData[0]?.url || mediaData[0];
+            }
         }
 
-        if (!videoUrl) throw new Error("Could not extract a downloadable video URL.");
+        // Final Verification
+        if (!videoUrl || typeof videoUrl !== 'string' || !videoUrl.startsWith('http')) {
+            // Agar bilkul na mile toh debug ke liye poora object text me dikha dega takki pata chale key kya hai
+            console.log("API Response Debug:", JSON.stringify(mediaData));
+            throw new Error("Video link key mismatch in API response.");
+        }
 
-        // Video Send Karein
+        let title = mediaData.title || mediaData.caption || mediaData.desc || "Kamran MD Video Downloader";
+
+        // Video Send karein
         await conn.sendMessage(m.chat, {
             video: { url: videoUrl },
             caption: `🎬 *Title:* ${title}\n\n> © KAMRAN-MINI-BOT ッ`,
