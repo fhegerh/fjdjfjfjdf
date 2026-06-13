@@ -1,7 +1,6 @@
 const { cmd } = require('../command');
 const axios = require('axios');
 const crypto = require('crypto');
-const CryptoJS = require('crypto-js');
 const FormData = require('form-data');
 
 // --- CONSTANTS ---
