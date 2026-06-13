@@ -36,6 +36,38 @@ async function snapvideo(url) {
   }
 }
 
+// Helper function to deep-search any URL from complex JSON response
+function findVideoUrl(obj) {
+    if (!obj) return null;
+    
+    // Agar direct string link hai
+    if (typeof obj === 'string' && obj.startsWith('http')) {
+        if (obj.includes('mp4') || obj.includes('video') || obj.includes('googlevideo') || obj.includes('snapcdn')) {
+            return obj;
+        }
+    }
+    
+    // Agar object ya array hai toh andar deep search karo
+    if (typeof obj === 'object') {
+        // Pehle priority keys check karo
+        const priorityKeys = ['url', 'videoUrl', 'play', 'download', 'hd', 'sd', 'main', 'link'];
+        for (let key of priorityKeys) {
+            if (obj[key] && typeof obj[key] === 'string' && obj[key].startsWith('http')) {
+                return obj[key];
+            }
+        }
+        
+        // Agar priority keys me na mile toh pure object ko loop karo
+        for (let key in obj) {
+            if (obj.hasOwnProperty(key)) {
+                const found = findVideoUrl(obj[key]);
+                if (found) return found;
+            }
+        }
+    }
+    return null;
+}
+
 cmd({
     pattern: "download",
     alias: ["dl", "snapdl", "insta", "tw", "fb", "tiktok"],
@@ -60,40 +92,16 @@ cmd({
             return reply(`❌ Error: ${data.Error}`);
         }
 
-        const mediaData = data.Result;
-        let videoUrl = null;
+        // Deep scanner se link nikalna
+        const videoUrl = findVideoUrl(data.Result);
 
-        // --- NEW DEEP SEARCH KEY PARSING ---
-        // 1. Direct structures
-        if (typeof mediaData === 'string' && mediaData.startsWith('http')) {
-            videoUrl = mediaData;
-        } else if (mediaData) {
-            videoUrl = mediaData.url || mediaData.videoUrl || mediaData.play || mediaData.download || mediaData.hd || mediaData.sd;
-            
-            // 2. Agar array 'medias' ke andar data hai
-            if (!videoUrl && Array.isArray(mediaData.medias)) {
-                videoUrl = mediaData.medias.find(m => m.type?.includes('video') || m.extension === 'mp4' || m.url)?.url || mediaData.medias[0]?.url;
-            }
-            
-            // 3. Agar array 'links' ke andar data hai
-            if (!videoUrl && Array.isArray(mediaData.links)) {
-                videoUrl = mediaData.links.find(l => l.type === 'video' || l.url?.includes('mp4'))?.url || mediaData.links[0]?.url;
-            }
-
-            // 4. Agar array 'urls' ya 'download_list' automatic nesting mein ho
-            if (!videoUrl && Array.isArray(mediaData)) {
-                videoUrl = mediaData[0]?.url || mediaData[0];
-            }
+        if (!videoUrl) {
+            await conn.sendMessage(m.chat, { react: { text: "❌", key: mek.key } });
+            console.log("FULL API RESPONSE:", JSON.stringify(data.Result, null, 2));
+            return reply("❌ Error: API se downloadable video link extract nahi kiya ja saka.");
         }
 
-        // Final Verification
-        if (!videoUrl || typeof videoUrl !== 'string' || !videoUrl.startsWith('http')) {
-            // Agar bilkul na mile toh debug ke liye poora object text me dikha dega takki pata chale key kya hai
-            console.log("API Response Debug:", JSON.stringify(mediaData));
-            throw new Error("Video link key mismatch in API response.");
-        }
-
-        let title = mediaData.title || mediaData.caption || mediaData.desc || "Kamran MD Video Downloader";
+        let title = data.Result?.title || data.Result?.caption || data.Result?.desc || "Kamran MD Video Downloader";
 
         // Video Send karein
         await conn.sendMessage(m.chat, {
