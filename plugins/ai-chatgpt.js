@@ -1,72 +1,96 @@
 const { cmd } = require('../command');
 const axios = require('axios');
-const { downloadContentFromMessage } = require('@whiskeysockets/baileys'); // Ya aapke framework ka download method
 
-const API_KEY = "prince";
+const API = "https://api.rifkyshre.biz.id";
+const ROUTE = "/scrape/snapvideo";
 
-// Helper: Image upload to Telegra.ph (Vision ke liye zaruri)
-async function uploadToTelegraph(buffer) {
-    const FormData = require('form-data');
-    const form = new FormData();
-    form.append('file', buffer, 'image.jpg');
-    const res = await axios.post('https://telegra.ph/upload', form, { headers: form.getHeaders() });
-    return 'https://telegra.ph' + res.data[0].src;
+// Scraper Function
+async function snapvideo(url) {
+  try {
+    const res = await axios.post(
+      `${API}${ROUTE}`,
+      { url },
+      {
+        timeout: 45000,
+        validateStatus: () => true,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
+
+    const body = res.data;
+    if (!body?.status) {
+      return {
+        Status: false,
+        Error: body?.error ?? "Unknown error",
+      };
+    }
+
+    return {
+      Status: true,
+      Result: body.data, // Ismein media urls, title wagerah hoga
+    };
+  } catch (e) {
+    return {
+      Status: false,
+      Error: e.message ?? String(e),
+    };
+  }
 }
 
+// Bot Command
 cmd({
-    pattern: "ai2",
-    category: "ai",
-    description: "AI chat options",
-    use: '.ai <model> <query>',
-}, async (conn, mek, m, { args, q, reply }) => {
+    pattern: "download",
+    alias: ["dl", "snapdl", "insta", "tw", "fb"],
+    category: "downloader",
+    description: "Download videos from TikTok, Instagram, Twitter, FB, etc.",
+    use: '.download <video_url>',
+}, async (conn, mek, m, { q, reply }) => {
     
-    // Fixed logic for model and query
-    if (args.length < 2) return reply("❌ Format: .ai <gemini|gpt|mistral|openai> <peshan>\n\nExample: .ai gemini kya haal hai?");
+    if (!q) return reply("❌ Please provide a valid video link!\n\n*Supported platforms:* TikTok, Instagram, Twitter/X, Facebook, Threads, etc.");
 
-    const model = args[0].toLowerCase();
-    const query = args.slice(1).join(" ");
-    
-    let apiUrl = "";
-    switch(model) {
-        case 'gemini': apiUrl = `https://api.princetechn.com/api/ai/geminiaipro?apikey=${API_KEY}&q=${encodeURIComponent(query)}`; break;
-        case 'gpt': apiUrl = `https://api.princetechn.com/api/ai/gpt?apikey=${API_KEY}&q=${encodeURIComponent(query)}`; break;
-        case 'mistral': apiUrl = `https://api.princetechn.com/api/ai/mistral?apikey=${API_KEY}&q=${encodeURIComponent(query)}`; break;
-        case 'openai': apiUrl = `https://api.princetechn.com/api/ai/openai?apikey=${API_KEY}&q=${encodeURIComponent(query)}`; break;
-        default: return reply("❌ Invalid model! Use: gemini, gpt, mistral, or openai");
+    // Simple URL validation
+    if (!q.startsWith("http://") && !q.startsWith("https://")) {
+        return reply("❌ Invalid URL format.");
     }
 
-    await conn.sendMessage(m.chat, { react: { text: "🤖", key: mek.key } });
+    await conn.sendMessage(m.chat, { react: { text: "⏳", key: mek.key } });
 
     try {
-        const res = await axios.get(apiUrl);
-        const result = res.data.result || res.data.message || "No response from AI";
-        reply(`🤖 *${model.toUpperCase()} AI:*\n\n${result}`);
-    } catch (e) {
-        reply("❌ API Error: " + e.message);
-    }
-});
+        const data = await snapvideo(q);
 
-cmd({
-    pattern: "vision",
-    category: "ai",
-    description: "Analyze image with AI",
-}, async (conn, mek, m, { reply }) => {
-    
-    // Quoted image check
-    const quoted = m.quoted ? m.quoted : mek;
-    const isImage = (quoted.mtype === 'imageMessage' || quoted.mimetype?.includes('image'));
-    
-    if (!isImage) return reply("❌ Please kisi image par reply karke .vision likhein!");
+        if (!data.Status) {
+            await conn.sendMessage(m.chat, { react: { text: "❌", key: mek.key } });
+            return reply(`❌ Error: ${data.Error}`);
+        }
 
-    await reply("🔍 Uploading and Analyzing...");
-    
-    try {
-        const media = await conn.downloadMediaMessage(quoted);
-        const imgUrl = await uploadToTelegraph(media);
+        // Response handling
+        const mediaData = data.Result;
         
-        const res = await axios.get(`https://api.princetechn.com/api/ai/vision?apikey=${API_KEY}&url=${encodeURIComponent(imgUrl)}`);
-        reply(`👁️ *Vision Analysis:*\n\n${res.data.result || "No analysis found."}`);
+        // Snapvideo tools aam taur par resources array ya direct media url deta hai.
+        // Agar response mein 'medias' ya 'links' array ho toh sabse best quality (video) nikalte hain:
+        let videoUrl = mediaData.url || (mediaData.medias && mediaData.medias[0]?.url);
+        let title = mediaData.title || mediaData.message || "Universal Downloader";
+
+        if (!videoUrl) {
+            // Agar formats array hai toh usme check karein
+            const videoLink = mediaData.links?.find(l => l.type === 'video' || l.extension === 'mp4');
+            videoUrl = videoLink ? videoLink.url : null;
+        }
+
+        if (!videoUrl) throw new Error("Could not extract a downloadable video URL.");
+
+        // Video Send Karein
+        await conn.sendMessage(m.chat, {
+            video: { url: videoUrl },
+            caption: `🎬 *Title:* ${title}\n\n> © KAMRAN-MINI-BOT ッ`,
+            mimetype: "video/mp4"
+        }, { quoted: mek });
+
+        await conn.sendMessage(m.chat, { react: { text: "✅", key: mek.key } });
+
     } catch (e) {
-        reply("❌ Vision API Error: " + e.message);
+        console.error(e);
+        await conn.sendMessage(m.chat, { react: { text: "❌", key: mek.key } });
+        reply("❌ System Error: " + e.message);
     }
 });
