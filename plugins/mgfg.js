@@ -1,91 +1,125 @@
 const { cmd } = require('../command');
 const axios = require('axios');
-const { load } = require('cheerio');
+const crypto = require('crypto');
+const CryptoJS = require('crypto-js');
+const FormData = require('form-data');
 
-const BASE = 'https://movieku.rest';
-const api = axios.create({ timeout: 20000 });
+// --- CONSTANTS ---
+const PUBLIC_KEY = `-----BEGIN PUBLIC KEY-----
+MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCwlO+boC6cwRo3UfXVBadaYwcX
+0zKS2fuVNY2qZ0dgwb1NJ+/Q9FeAosL4ONiosD71on3PVYqRUlL5045mvH2K9i8b
+AFVMEip7E6RMK6tKAAif7xzZrXnP1GZ5Rijtqdgwh+YmzTo39cuBCsZqK9oEoeQ3
+r/myG9S+9cR5huTuFQIDAQAB
+-----END PUBLIC KEY-----`;
 
-// Global cache for current results to prevent data loss
-global.ongoing_data = global.ongoing_data || {};
+const APP_ID = "aifaceswap";
+const U_ID = "1H5tRtzsBkqXcaJ";
 
-async function fetchHtml(url) {
-    const { data } = await api.get(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36' } });
-    return data;
+// --- CRYPTO HELPERS ---
+function generateRandomString(len) {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    let res = "";
+    for (let i = 0; i < len; i++) res += chars.charAt(Math.floor(Math.random() * chars.length));
+    return res;
 }
 
-function parseArticles(html) {
-    const $ = load(html);
-    const items = [];
-    $('article').each((i, el) => {
-        const a = $(el).find('a[href]').first();
-        const href = a.attr('href');
-        if (href && (href.includes('/series/') || href.includes('/movie/'))) {
-            items.push({
-                title: $(el).find('.entry-title').text().trim() || a.text().trim(),
-                link: new URL(href, BASE).href
-            });
-        }
-    });
-    return items;
+function aesenc(data, key) {
+    const k = CryptoJS.enc.Utf8.parse(key);
+    return CryptoJS.AES.encrypt(data, k, { iv: k, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7 }).toString();
 }
 
+function rsaenc(data) {
+    const buffer = Buffer.from(data, 'utf8');
+    return crypto.publicEncrypt({ key: PUBLIC_KEY, padding: crypto.constants.RSA_PKCS1_PADDING }, buffer).toString('base64');
+}
+
+function gencryptoheaders(type, fp = null) {
+    const e = new Date();
+    const n = Math.floor(new Date(e.getUTCFullYear(), e.getUTCMonth(), e.getUTCDate(), e.getUTCHours(), e.getUTCMinutes(), e.getUTCSeconds()).getTime() / 1000);
+    const r = crypto.randomUUID();
+    const i = generateRandomString(16);
+    const fingerPrint = fp || crypto.randomBytes(16).toString('hex');
+    const s = rsaenc(i);
+    let signStr = (type === 'upload') ? `${APP_ID}:${r}:${s}` : `${APP_ID}:${U_ID}:${n}:${r}:${s}`;
+    return {
+        'fp': fingerPrint,
+        'fp1': aesenc(`${APP_ID}:${fingerPrint}`, i),
+        'x-guide': s,
+        'x-sign': aesenc(signStr, i),
+        'x-code': Date.now().toString()
+    };
+}
+
+// --- COMMAND ---
 cmd({
-    pattern: "ongoing",
-    category: "downloader",
-    description: "Fetch ongoing series",
-}, async (conn, mek, m, { args, from, reply }) => {
+    pattern: "faceswap",
+    alias: ["aiface"],
+    category: "ai",
+    description: "FaceSwap your image using AI",
+    use: '.faceswap <reply image> <prompt>',
+}, async (conn, mek, m, { q, reply, quoted }) => {
+    
+    // Check if image exists
+    const mime = (quoted || mek).mimetype || "";
+    if (!/image/.test(mime)) return reply("❌ Please reply to an image!");
+    if (!q) return reply("❌ Please provide a prompt. Example: .faceswap change clothes to batik");
+
+    await reply("⏳ Uploading and processing AI task...");
+
     try {
-        const page = args[0] || "1";
-        const html = await fetchHtml(`${BASE}/ongoing/page/${page}/`);
-        const results = parseArticles(html);
-
-        if (results.length === 0) return reply("❌ No results found.");
-
-        let txt = `📺 *ONGOING SERIES (Page ${page})*\n\n`;
-        results.forEach((v, i) => { txt += `*${i + 1}.* ${v.title}\n`; });
-        txt += `\n> *Reply with the number (1-${results.length}) to get links.*`;
-
-        // Save data to global cache
-        global.ongoing_data[from] = results;
-
-        await conn.sendMessage(from, { text: txt }, { quoted: mek });
-
-        // Logic for handling reply
-        const handler = async (update) => {
-            const msg = update.messages[0];
-            if (!msg.message || msg.key.remoteJid !== from) return;
-
-            const text = (msg.message.conversation || msg.message.extendedTextMessage?.text || "").trim();
-            const num = parseInt(text);
-
-            if (!isNaN(num) && global.ongoing_data[from] && num > 0 && num <= global.ongoing_data[from].length) {
-                conn.ev.off("messages.upsert", handler); // Stop listening
-                
-                const selected = global.ongoing_data[from][num - 1];
-                await conn.sendMessage(from, { react: { text: "⏳", key: msg.key } });
-
-                const detailHtml = await fetchHtml(selected.link);
-                const $ = load(detailHtml);
-                
-                let links = "";
-                $('a').each((i, el) => {
-                    const href = $(el).attr('href');
-                    if (href && (href.includes('acefile') || href.includes('mega') || href.includes('drive'))) {
-                        links += `🔗 *${$(el).text().trim()}*: ${href}\n`;
-                    }
-                });
-
-                await reply(`🎬 *${selected.title}*\n\n` + (links || "❌ No download links found.") + `\n> © KAMRAN-MINI-BOT ッ`);
-                delete global.ongoing_data[from]; // Clear cache
-            }
-        };
-
-        conn.ev.on("messages.upsert", handler);
+        // Download image
+        const imgBuffer = await conn.downloadAndSaveMediaMessage(quoted || mek);
         
-        // Auto-clear listener after 2 minutes
-        setTimeout(() => { conn.ev.off("messages.upsert", handler); }, 120000);
+        // 1. Upload
+        const cryptoHeaders = gencryptoheaders('upload');
+        const form = new FormData();
+        form.append('file', require('fs').createReadStream(imgBuffer), { filename: 'input.jpg' });
+        form.append('fn_name', 'demo-image-editor');
+        form.append('request_from', '9');
+        form.append('origin_from', '8f3f0c7387123ae0');
+
+        const uploadRes = await axios.post('https://app-v1.live3d.io/aitools/upload-img', form, {
+            headers: { ...form.getHeaders(), ...cryptoHeaders }
+        });
+        const { path, fp } = { path: uploadRes.data.path, fp: cryptoHeaders.fp };
+
+        // 2. Create Job
+        const createHeaders = gencryptoheaders('create', fp);
+        const taskRes = await axios.post('https://app-v1.live3d.io/aitools/of/create', {
+            fn_name: 'demo-image-editor',
+            call_type: 3,
+            input: { model: 'nano_banana', source_images: [path], prompt: q, aspect_radio: 'auto', request_from: 9 },
+            request_from: 9,
+            origin_from: '8f3f0c7387123ae0'
+        }, { headers: createHeaders });
+
+        const taskId = taskRes.data.task_id;
+        await reply("✅ Task created! Polling status...");
+
+        // 3. Polling
+        let result;
+        for (let i = 0; i < 15; i++) {
+            await new Promise(r => setTimeout(r, 5000));
+            const checkHeaders = gencryptoheaders('check', fp);
+            const statusRes = await axios.post('https://app-v1.live3d.io/aitools/of/check-status', {
+                task_id: taskId, fn_name: 'demo-image-editor', call_type: 3, request_from: 9, origin_from: '8f3f0c7387123ae0'
+            }, { headers: checkHeaders });
+            
+            result = statusRes.data;
+            if (result.status === 2) break;
+            if (result.status === 3) return reply("❌ AI Task failed.");
+        }
+
+        if (result.status !== 2) return reply("❌ Polling timeout.");
+
+        // Send Result
+        await conn.sendMessage(m.chat, { 
+            image: { url: 'https://temp.live3d.io/' + result.result_image },
+            caption: `✨ *AI FACE SWAP SUCCESS*\n\nPrompt: ${q}` 
+        }, { quoted: mek });
 
     } catch (e) {
+        console.error(e);
         reply("❌ Error: " + e.message);
     }
 });
