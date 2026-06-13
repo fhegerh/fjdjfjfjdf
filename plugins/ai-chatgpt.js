@@ -1,73 +1,65 @@
 const { cmd } = require('../command');
-const fetch = require('node-fetch'); // Ensure you have node-fetch installed
+const axios = require('axios');
 
-// Configuration
-const API_KEY = "00d31898ca4091c9631f43479e009633db569e423254dca015ea76a0ef2782a5"; // ← Yahan apna key zaroor daalein
-const ENDPOINT = "https://back.asitha.top/api/channel/list";
-
-// Helper function for date formatting
-function formatExpiry(iso) {
-    if (!iso) return null;
-    const d = new Date(iso);
-    const now = Date.now();
-    const diffMs = d.getTime() - now;
-    if (diffMs < 0) return "EXPIRED";
-    const diffH = Math.floor(diffMs / 3_600_000);
-    const diffM = Math.floor((diffMs % 3_600_000) / 60_000);
-    return `${d.toLocaleString()} (in ${diffH}h ${diffM}m)`;
-}
+const API_KEY = "prince"; // Apni key yahan adjust karein
 
 cmd({
-    pattern: "kamranmd",
-    alias: ["listchannel", "kamranlist"],
-    category: "tools",
-    filename: __filename,
-    description: "Check your active channels on Asitha.top",
-    use: '.asitha',
-},
-async (conn, mek, m, { from, reply }) => {
+    pattern: "ai",
+    alias: ["gpt", "gemini", "mistral", "vision"],
+    category: "ai",
+    description: "AI chat options",
+    use: '.ai <model> <query>',
+}, async (conn, mek, m, { args, q, reply }) => {
+    
+    if (!q) return reply("❌ Format: .ai <gemini|gpt|mistral|openai> <peshan>\n\nExample: .ai gemini kya haal hai?");
+
+    const model = args[0].toLowerCase();
+    const query = args.slice(1).join(" ");
+    
+    if (!query) return reply("❌ Peshan (query) likhein!");
+
+    let apiUrl = "";
+    // Endpoints selection
+    switch(model) {
+        case 'gemini': apiUrl = `https://api.princetechn.com/api/ai/geminiaipro?apikey=${prince}&q=${encodeURIComponent(query)}`; break;
+        case 'gpt': apiUrl = `https://api.princetechn.com/api/ai/gpt?apikey=${prince}&q=${encodeURIComponent(query)}`; break;
+        case 'mistral': apiUrl = `https://api.princetechn.com/api/ai/mistral?apikey=${prince}&q=${encodeURIComponent(query)}`; break;
+        case 'openai': apiUrl = `https://api.princetechn.com/api/ai/openai?apikey=${prince}&q=${encodeURIComponent(query)}`; break;
+        default: return reply("❌ Invalid model! Use: gemini, gpt, mistral, or openai");
+    }
+
+    await conn.sendMessage(m.chat, { react: { text: "🤖", key: mek.key } });
+
     try {
-        if (!API_KEY || API_KEY.includes("Your API Key")) {
-            return await reply("❌ API_KEY set nahi hai. Code mein API_KEY variable update karein.");
-        }
+        const res = await axios.get(apiUrl);
+        // Note: API ka response structure check karein, agar 'result' mein data hai toh wo bhej rahe hain
+        const result = res.data.result || res.data.message || JSON.stringify(res.data);
+        reply(`🤖 *${model.toUpperCase()} AI:*\n\n${result}`);
+    } catch (e) {
+        reply("❌ API Error: " + e.message);
+    }
+});
 
-        await reply("🔄 Fetching channels from Asitha...");
+// Vision AI Command (Image analysis ke liye)
+cmd({
+    pattern: "vision",
+    category: "ai",
+    description: "Analyze image with AI",
+    use: '.vision <reply image>',
+}, async (conn, mek, m, { quoted, reply }) => {
+    
+    const isQuotedImage = quoted && (quoted.mtype === 'imageMessage' || quoted.mimetype?.includes('image'));
+    if (!isQuotedImage) return reply("❌ Please reply to an image!");
 
-        const res = await fetch(ENDPOINT, {
-            method: "GET",
-            headers: {
-                "Authorization": `Bearer ${API_KEY}`,
-                "Accept": "application/json",
-            },
-        });
-
-        if (!res.ok) {
-            const text = await res.text();
-            throw new Error(`HTTP ${res.status}: ${text.slice(0, 50)}`);
-        }
-
-        const data = await res.json();
-        const channels = Array.isArray(data.channels) ? data.channels : [];
-
-        if (channels.length === 0) {
-            return await reply("📭 Belum ada channel aktif.");
-        }
-
-        let listText = `✅ *${channels.length} CHANNEL AKTIF*\n\n`;
-        
-        for (let i = 0; i < channels.length; i++) {
-            const c = channels[i];
-            listText += `*${i + 1}.* ${c.channelLink ?? "(no link)"}\n`;
-            if (c.reactions) listText += `   ⭐ Reaction : ${c.reactions}\n`;
-            if (c.expiresAt) listText += `   ⏳ Expires : ${formatExpiry(c.expiresAt)}\n`;
-            listText += `\n`;
-        }
-
-        listText += `> © KAMRAN-MINI-BOT ッ`;
-        await reply(listText);
-
-    } catch (err) {
-        console.error(err);
-        await reply(`❌ Error: ${err.message}`);
+    await reply("🔍 Analyzing image...");
+    
+    try {
+        // Yahan image ka URL generate karna hoga jo API ko diya ja sake
+        // Note: Is API ke liye aapko image ka public URL chahiye
+        const imgUrl = "IMAGE_URL_HERE"; 
+        const res = await axios.get(`https://api.princetechn.com/api/ai/vision?apikey=${prince}&url=${encodeURIComponent(imgUrl)}`);
+        reply(`👁️ *Vision Analysis:*\n\n${res.data.result}`);
+    } catch (e) {
+        reply("❌ Vision API Error.");
     }
 });
