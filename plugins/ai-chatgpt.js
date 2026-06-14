@@ -3,57 +3,58 @@ const axios = require('axios');
 
 cmd({
     pattern: "vcc",
-    alias: ["vccgen", "cardgen"],
-    desc: "Generate Virtual Credit Card (VCC) berdasarkan BIN",
+    alias: ["vccgen", "vccgenerator"],
+    desc: "Generate Virtual Credit Card (VCC) berdasarkan tipe (visa/mastercard)",
     category: "tools",
     filename: __filename
 },
 async (conn, mek, m, { from, quoted, body, isCmd, command, args, q, isGroup, sender, reply }) => {
     try {
-        // 1. Validasi input BIN dari user
-        if (!q) return reply("Silahkan masukkan nomor BIN (6 digit awal kartu)!\nContoh: .vcc 414720");
+        // 1. Ambil input tipe dari user, jika kosong default ke 'visa'
+        let type = q.trim().toLowerCase();
+        if (!type) type = 'visa'; // Default jika user hanya mengetik .vcc
 
-        const bin = q.trim();
-        
-        // Validasi agar yang dimasukkan harus berupa angka
-        if (isNaN(bin)) return reply("BIN harus berupa angka saja!");
+        // Validasi tipe yang didukung oleh API (opsional, untuk mencegah error)
+        const allowedTypes = ['visa', 'mastercard', 'amex', 'discover'];
+        if (!allowedTypes.includes(type)) {
+            return reply(`Tipe kartu tidak didukung!\nTipe yang tersedia: *${allowedTypes.join(', ')}*`);
+        }
 
-        await reply("Sedang men-generate VCC, mohon tunggu...");
+        await reply(`Sedang men-generate VCC (*${type.toUpperCase()}*), mohon tunggu...`);
 
-        // 2. Fetch ke API David Cyril Tech
-        const apiUrl = `https://apis.davidcyriltech.my.id/ai/vcc?bin=${bin}`; // Sesuaikan endpoint jika berbeda
+        // 2. Fetch ke API David Cyril Tech sesuai endpoint baru
+        const apiUrl = `https://apis.davidcyriltech.my.id/tools/vcc-generator?type=${type}`;
         const response = await axios.get(apiUrl);
         const res = response.data;
 
-        // 3. Membaca data response dari API
-        // Catatan: Umumnya API VCC mengembalikan array berisi list kartu yang di-generate
-        if (!res || res.status !== true || !res.result) {
-            return reply("Gagal men-generate VCC. Pastikan nomor BIN benar atau coba BIN lain.");
+        // 3. Validasi respon sukses dari API
+        // Catatan: Jika API langsung mengembalikan data tanpa property 'status', sesuaikan kondisi di bawah ini
+        if (!res) {
+            return reply("Gagal mengambil data dari server API.");
         }
 
-        const cards = res.result; // Biasanya berupa Array data kartu
+        // Mengambil data kartu (sesuaikan dengan struktur JSON yang keluar di console.log)
+        // Umumnya berupa object tunggal atau list di dalam property 'result' atau langsung di root object
+        const card = res.result || res; 
 
+        // 4. Menyusun template teks hasil untuk dikirim ke WhatsApp
         let teksHasil = `*💳 VCC GENERATOR SUCCESS 💳*\n\n`;
-        teksHasil += `📌 *BIN:* ${bin}\n`;
+        teksHasil += `➔ *Type:* ${type.toUpperCase()}\n`;
+        teksHasil += `➔ *Brand:* ${card.brand || card.type || type.toUpperCase()}\n`;
         teksHasil += `━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
-
-        // Jika response berbentuk Array (banyak kartu)
-        if (Array.isArray(cards)) {
-            cards.forEach((card, index) => {
-                teksHasil += `*${index + 1}.* \`${card.number || card.cc}|${card.month || card.mm}|${card.year || card.yy}|${card.cvv}\`\n`;
-            });
-        } else if (typeof cards === 'object') {
-            // Jika response hanya 1 object kartu
-            teksHasil += `➔ *Card:* \`${cards.number || cards.cc}|${cards.month || cards.mm}|${cards.year || cards.yy}|${cards.cvv}\`\n`;
-        } else {
-            // Jika response langsung berbentuk teks mentah
-            teksHasil += cards;
-        }
-
+        
+        // Format standar copy-paste (Nomor|Bulan|Tahun|CVV) dibungkus dengan backtick agar monospace
+        teksHasil += `🔹 *Card Data:* \n`;
+        teksHasil += `\`${card.number || card.cc || card.creditCardNumber || ''}|${card.month || card.mm || card.exp_month || ''}|${card.year || card.yy || card.exp_year || ''}|${card.cvv || card.cvc || ''}\`\n\n`;
+        
+        // Detail tambahan jika ada di dalam response API
+        if (card.holder || card.name) teksHasil += `👤 *Holder:* ${card.holder || card.name}\n`;
+        if (card.country) teksHasil += `🌍 *Country:* ${card.country}\n`;
+        
         teksHasil += `\n━━━━━━━━━━━━━━━━━━━━━━━━\n`;
-        teksHasil += `_Format: Nomor|Bulan|Tahun|CVV_`;
+        teksHasil += `_Klik pada teks kotak di atas untuk menyalin data kartu._`;
 
-        // 4. Kirim hasil akhir ke user
+        // 5. Kirim hasil akhir ke chat
         await reply(teksHasil);
 
     } catch (error) {
