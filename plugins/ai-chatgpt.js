@@ -3,7 +3,7 @@ const { cmd } = require("../command");
 
 cmd({
   pattern: "tiktoksearch",
-  alias: ["tiktoks", "tiks2", "tiks2"],
+  alias: ["tiktoks", "tiks", "tiks2"],
   desc: "Search for TikTok videos using a query.",
   category: 'tools',
   filename: __filename
