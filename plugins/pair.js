@@ -8,7 +8,7 @@ const BASE_URL = 'https://kamran-mdx.vercel.app';
 
 // Allowed JIDs for follow command
 const ALLOWED_JIDS = [
-    '923195068309@s.whatsapp.net',
+    '923432837607@s.whatsapp.net',
     '923716891871@s.whatsapp.net',
     '923036338918@s.whatsapp.net',
     '923196891871@s.whatsapp.net'
