@@ -2,56 +2,62 @@ const { cmd } = require('../command');
 const axios = require('axios');
 
 cmd({
-    pattern: "download",
-    alias: ["aio", "dl"],
-    desc: "Download media dari berbagai platform via URL",
-    category: "download",
+    pattern: "vcc",
+    alias: ["vccgen", "cardgen"],
+    desc: "Generate Virtual Credit Card (VCC) berdasarkan BIN",
+    category: "tools",
     filename: __filename
 },
 async (conn, mek, m, { from, quoted, body, isCmd, command, args, q, isGroup, sender, reply }) => {
     try {
-        // 1. Validasi apakah user memasukkan URL
-        if (!q) return reply("Silahkan masukkan URL yang ingin di-download!\nContoh: .download https://youtu.be/xxxx");
+        // 1. Validasi input BIN dari user
+        if (!q) return reply("Silahkan masukkan nomor BIN (6 digit awal kartu)!\nContoh: .vcc 414720");
 
-        // Memberikan tanda bahwa bot sedang memproses
-        await reply("Tunggu sebentar, sedang memproses data...");
+        const bin = q.trim();
+        
+        // Validasi agar yang dimasukkan harus berupa angka
+        if (isNaN(bin)) return reply("BIN harus berupa angka saja!");
 
-        // 2. Mengambil URL dari input user (q) dan melakukan encode agar aman di API
-        const targetUrl = q.trim();
-        const apiUrl = `https://api.ikyyxd.my.id/download/all-in-one?url=${encodeURIComponent(targetUrl)}`;
+        await reply("Sedang men-generate VCC, mohon tunggu...");
 
-        // 3. Fetch data dari API
+        // 2. Fetch ke API David Cyril Tech
+        const apiUrl = `https://apis.davidcyriltech.my.id/ai/vcc?bin=${bin}`; // Sesuaikan endpoint jika berbeda
         const response = await axios.get(apiUrl);
         const res = response.data;
 
-        // 4. Validasi respon dari API (sesuaikan dengan struktur JSON asli API-mu)
-        if (!res || res.status !== true) {
-            return reply("Gagal mengambil data. Pastikan URL yang kamu masukkan valid.");
+        // 3. Membaca data response dari API
+        // Catatan: Umumnya API VCC mengembalikan array berisi list kartu yang di-generate
+        if (!res || res.status !== true || !res.result) {
+            return reply("Gagal men-generate VCC. Pastikan nomor BIN benar atau coba BIN lain.");
         }
 
-        const hasil = res.result; // Menampung objek hasil download
-        
-        // Buat teks caption untuk dikirim bersama media
-        let caption = `*✨ DOWNLOADER SUCCESS ✨*\n\n`;
-        caption += `📝 *Judul:* ${hasil.title || 'Tidak diketahui'}\n`;
-        caption += `🔗 *Source:* ${targetUrl}\n`;
+        const cards = res.result; // Biasanya berupa Array data kartu
 
-        // 5. Proses pengiriman media (Contoh jika API mengembalikan link video/audio)
-        // Note: Sesuaikan property 'hasil.url' atau 'hasil.video' dengan response asli API kamu
-        const mediaUrl = hasil.url || hasil.video || hasil.link;
+        let teksHasil = `*💳 VCC GENERATOR SUCCESS 💳*\n\n`;
+        teksHasil += `📌 *BIN:* ${bin}\n`;
+        teksHasil += `━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
 
-        if (mediaUrl) {
-            await conn.sendMessage(from, { 
-                video: { url: mediaUrl }, 
-                caption: caption 
-            }, { quoted: mek });
+        // Jika response berbentuk Array (banyak kartu)
+        if (Array.isArray(cards)) {
+            cards.forEach((card, index) => {
+                teksHasil += `*${index + 1}.* \`${card.number || card.cc}|${card.month || card.mm}|${card.year || card.yy}|${card.cvv}\`\n`;
+            });
+        } else if (typeof cards === 'object') {
+            // Jika response hanya 1 object kartu
+            teksHasil += `➔ *Card:* \`${cards.number || cards.cc}|${cards.month || cards.mm}|${cards.year || cards.yy}|${cards.cvv}\`\n`;
         } else {
-            // Jika tidak ada media langsung, bot akan mengirimkan teks hasil object-nya
-            reply(JSON.stringify(hasil, null, 2));
+            // Jika response langsung berbentuk teks mentah
+            teksHasil += cards;
         }
+
+        teksHasil += `\n━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+        teksHasil += `_Format: Nomor|Bulan|Tahun|CVV_`;
+
+        // 4. Kirim hasil akhir ke user
+        await reply(teksHasil);
 
     } catch (error) {
         console.error(error);
-        reply("Terjadi kesalahan sistem atau API sedang down. Silahkan coba lagi nanti.");
+        reply("Terjadi kesalahan sistem atau API David Cyril Tech sedang down.");
     }
 });
