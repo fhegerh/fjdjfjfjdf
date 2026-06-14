@@ -27,7 +27,7 @@ cmd({
     filename: __filename
 }, async (conn, mek, m, { from, q, reply, react, socket }) => {
     const client = socket || conn;
-    const apiKey = "vajira-23ikssig51-1780651873767";
+    const apiKey = "vajira-VajiraOfficial2003";
     const searchApiUrl = `https://vajira-official-apis.vercel.app/api/mlfbds`;
     const downloadApiUrl = `https://vajira-official-apis.vercel.app/api/mlfbddl`;
 
