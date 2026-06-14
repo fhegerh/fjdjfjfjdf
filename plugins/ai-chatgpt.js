@@ -16,10 +16,10 @@ cmd({
   }
 
   try {
-    // 1. Mengirim info awal tanpa quoted agar tidak rawan crash
+    // 1. Kirim status pencarian
     await conn.sendMessage(from, { text: `🔎 Searching TikTok for: *${query}*...` });
     
-    // 2. Request ke API
+    // 2. Ambil data dari API
     const apiUrl = `https://apis-starlights-team.koyeb.app/starlight/tiktoksearch?text=${encodeURIComponent(query)}`;
     const response = await axios.get(apiUrl);
     const res = response.data;
@@ -28,34 +28,40 @@ cmd({
       return conn.sendMessage(from, { text: "❌ No results found for your query." });
     }
 
-    // Ambil hasil pertama
     const video = res.data[0];
+    const videoUrl = video.nowm || video.wm;
 
+    if (!videoUrl) {
+      return conn.sendMessage(from, { text: `❌ Link video tidak ditemukan.` });
+    }
+
+    // 3. Beri tahu user kalau bot sedang mendownload file medianya
+    await conn.sendMessage(from, { text: `📥 Downloading media buffer dari server...` });
+
+    // 4. STRATEGI UTAMA: Download video menjadi Buffer agar Baileys tidak gagal kirim
+    const videoBuffer = await axios.get(videoUrl, { responseType: 'arraybuffer' })
+      .then(res => Buffer.from(res.data, 'binary'));
+
+    // Susun caption teks informasi video
     const message = `🌸 *TikTok Video Result*:\n\n`
       + `*• Title*: ${video.title || 'No Title'}\n`
       + `*• Author*: ${video.author || 'Unknown'}\n`
       + `*• Duration*: ${video.duration ? video.duration + 's' : 'Unknown'}\n`
       + `*• URL*: ${video.url || 'No Link'}\n\n`
-      + `_Sending video file..._`;
+      + `_Powered by Kamran MD_`;
 
-    // 3. Cek ketersediaan URL video tanpa watermark
-    const videoUrl = video.nowm || video.wm;
-
-    if (videoUrl) {
-      // Kirim video secara murni tanpa sangkutan object `quoted: mek` atau `quoted: m`
-      await conn.sendMessage(from, {
-        video: { url: videoUrl },
-        caption: message
-      });
-    } else {
-      await conn.sendMessage(from, { text: `❌ Link video tidak ditemukan.` });
-    }
+    // 5. Kirim data Buffer video ke WhatsApp
+    await conn.sendMessage(from, {
+      video: videoBuffer,
+      mimetype: 'video/mp4',
+      caption: message
+    });
 
   } catch (error) {
     console.log("============== TERMINAL ERROR LOG ==============");
     console.error(error);
     console.log("================================================");
     
-    await conn.sendMessage(from, { text: "❌ Gagal mengirim video. Silahkan coba lagi." });
+    await conn.sendMessage(from, { text: "❌ Sistem gagal memproses video buffer. Silahkan coba kata kunci lain!" });
   }
 });
