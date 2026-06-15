@@ -13,7 +13,7 @@ async (conn, mek, m, { from, args, reply }) => {
 
     try {
         if (!args[0]) {
-            return reply("✨ *Please provide a song name!*\n*Example:* `.play faded`");
+            return reply("❌ *Song ka naam likho*\nExample: `.play faded`");
         }
 
         let query = encodeURIComponent(args.join(" "));
@@ -22,28 +22,27 @@ async (conn, mek, m, { from, args, reply }) => {
         let { data } = await axios.get(api, { timeout: 15000 });
 
         if (!data?.status) {
-            return reply("❌ *Song not found. Please check your spelling.*");
+            return reply("❌ *Song nahi mila, kuch aur try karo.*");
         }
 
         const result = data.result;
         if (!result?.download?.audio) {
-            return reply("❌ *Failed to retrieve audio stream.*");
+            return reply("❌ *Audio download link nahi mila.*");
         }
 
         // Stylish Caption
         let text = `
-╔══════════════════════
-║ 🎧 *DR KAMRAN - MUSIC*
-╚══════════════════════
-┃ 🎶 *Title:* ${result.title}
-┃ 👤 *Channel:* ${result.channel}
-┃ ⏱ *Duration:* ${result.duration}
-╚══════════════════════
+╭━━━❮ *DR KAMRAN* ❯━━━╮
+┃ 🎵 *${result.title}*
+╰━━━━━━━━━━━━━━━╯
+
+⏱ *Duration:* ${result.duration}
 
 *⚡ Processing Audio...*
-*🚀 Sending now, stay tuned!*
+*🚀 Sending now...*
 `.trim();
 
+        // Image with Caption & Newsletter Info
         await conn.sendMessage(from, {
             image: { url: result.thumbnail },
             caption: text,
@@ -58,23 +57,15 @@ async (conn, mek, m, { from, args, reply }) => {
             }
         }, { quoted: mek });
 
+        // Audio without Newsletter/Forwarding
         await conn.sendMessage(from, {
             audio: { url: result.download.audio },
             mimetype: "audio/mp4",
-            ptt: false,
-            contextInfo: {
-                isForwarded: true,
-                forwardingScore: 999,
-                forwardedNewsletterMessageInfo: {
-                    newsletterJid: "120363418144382782@newsletter",
-                    newsletterName: "KAMRAN-MD",
-                    serverMessageId: 1
-                }
-            }
+            ptt: false
         }, { quoted: mek });
 
     } catch (e) {
         console.error(e);
-        reply("❌ *An error occurred while processing your request.*");
+        reply("❌ *Error aagaya hai, please try again.*");
     }
 });
