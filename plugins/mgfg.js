@@ -1,124 +1,134 @@
+const axios = require("axios");
+const config = require("../config");
 const { cmd } = require('../command');
-const axios = require('axios');
-const crypto = require('crypto');
-const FormData = require('form-data');
+const sharp = require("sharp");
 
-// --- CONSTANTS ---
-const PUBLIC_KEY = `-----BEGIN PUBLIC KEY-----
-MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCwlO+boC6cwRo3UfXVBadaYwcX
-0zKS2fuVNY2qZ0dgwb1NJ+/Q9FeAosL4ONiosD71on3PVYqRUlL5045mvH2K9i8b
-AFVMEip7E6RMK6tKAAif7xzZrXnP1GZ5Rijtqdgwh+YmzTo39cuBCsZqK9oEoeQ3
-r/myG9S+9cR5huTuFQIDAQAB
------END PUBLIC KEY-----`;
-
-const APP_ID = "aifaceswap";
-const U_ID = "1H5tRtzsBkqXcaJ";
-
-// --- CRYPTO HELPERS ---
-function generateRandomString(len) {
-    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-    let res = "";
-    for (let i = 0; i < len; i++) res += chars.charAt(Math.floor(Math.random() * chars.length));
-    return res;
+// Helper function to process high-compatibility jpeg thumbnails
+async function getThumbnailBuffer(url) {
+    if (!url) return null;
+    try {
+        const { data } = await axios.get(url, { responseType: "arraybuffer" });
+        return await sharp(data)
+            .resize(300, 300)
+            .jpeg({ quality: 80 })
+            .toBuffer();
+    } catch (err) {
+        console.error("Error processing thumbnail:", err.message || err);
+        return null;
+    }
 }
 
-function aesenc(data, key) {
-    const k = CryptoJS.enc.Utf8.parse(key);
-    return CryptoJS.AES.encrypt(data, k, { iv: k, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7 }).toString();
-}
-
-function rsaenc(data) {
-    const buffer = Buffer.from(data, 'utf8');
-    return crypto.publicEncrypt({ key: PUBLIC_KEY, padding: crypto.constants.RSA_PKCS1_PADDING }, buffer).toString('base64');
-}
-
-function gencryptoheaders(type, fp = null) {
-    const e = new Date();
-    const n = Math.floor(new Date(e.getUTCFullYear(), e.getUTCMonth(), e.getUTCDate(), e.getUTCHours(), e.getUTCMinutes(), e.getUTCSeconds()).getTime() / 1000);
-    const r = crypto.randomUUID();
-    const i = generateRandomString(16);
-    const fingerPrint = fp || crypto.randomBytes(16).toString('hex');
-    const s = rsaenc(i);
-    let signStr = (type === 'upload') ? `${APP_ID}:${r}:${s}` : `${APP_ID}:${U_ID}:${n}:${r}:${s}`;
-    return {
-        'fp': fingerPrint,
-        'fp1': aesenc(`${APP_ID}:${fingerPrint}`, i),
-        'x-guide': s,
-        'x-sign': aesenc(signStr, i),
-        'x-code': Date.now().toString()
-    };
-}
-
-// --- COMMAND ---
 cmd({
-    pattern: "faceswap",
-    alias: ["aiface"],
-    category: "ai",
-    description: "FaceSwap your image using AI",
-    use: '.faceswap <reply image> <prompt>',
-}, async (conn, mek, m, { q, reply, quoted }) => {
-    
-    // Check if image exists
-    const mime = (quoted || mek).mimetype || "";
-    if (!/image/.test(mime)) return reply("❌ Please reply to an image!");
-    if (!q) return reply("❌ Please provide a prompt. Example: .faceswap change clothes to batik");
-
-    await reply("⏳ Uploading and processing AI task...");
+    pattern: "movie2",
+    alias: ["mlfbd", "downloadmovie", "cinemalk"],
+    desc: "Search and download movies from MLFBD via API",
+    category: "downloader",
+    react: "🎬",
+    filename: __filename
+}, async (conn, mek, m, { from, q, reply, react, socket }) => {
+    const client = socket || conn;
+    const apiKey = "vajira-VajiraOfficial2003";
+    const searchApiUrl = `https://vajira-official-apis.vercel.app/api/mlfbds`;
+    const downloadApiUrl = `https://vajira-official-apis.vercel.app/api/mlfbddl`;
 
     try {
-        // Download image
-        const imgBuffer = await conn.downloadAndSaveMediaMessage(quoted || mek);
-        
-        // 1. Upload
-        const cryptoHeaders = gencryptoheaders('upload');
-        const form = new FormData();
-        form.append('file', require('fs').createReadStream(imgBuffer), { filename: 'input.jpg' });
-        form.append('fn_name', 'demo-image-editor');
-        form.append('request_from', '9');
-        form.append('origin_from', '8f3f0c7387123ae0');
-
-        const uploadRes = await axios.post('https://app-v1.live3d.io/aitools/upload-img', form, {
-            headers: { ...form.getHeaders(), ...cryptoHeaders }
-        });
-        const { path, fp } = { path: uploadRes.data.path, fp: cryptoHeaders.fp };
-
-        // 2. Create Job
-        const createHeaders = gencryptoheaders('create', fp);
-        const taskRes = await axios.post('https://app-v1.live3d.io/aitools/of/create', {
-            fn_name: 'demo-image-editor',
-            call_type: 3,
-            input: { model: 'nano_banana', source_images: [path], prompt: q, aspect_radio: 'auto', request_from: 9 },
-            request_from: 9,
-            origin_from: '8f3f0c7387123ae0'
-        }, { headers: createHeaders });
-
-        const taskId = taskRes.data.task_id;
-        await reply("✅ Task created! Polling status...");
-
-        // 3. Polling
-        let result;
-        for (let i = 0; i < 15; i++) {
-            await new Promise(r => setTimeout(r, 5000));
-            const checkHeaders = gencryptoheaders('check', fp);
-            const statusRes = await axios.post('https://app-v1.live3d.io/aitools/of/check-status', {
-                task_id: taskId, fn_name: 'demo-image-editor', call_type: 3, request_from: 9, origin_from: '8f3f0c7387123ae0'
-            }, { headers: checkHeaders });
-            
-            result = statusRes.data;
-            if (result.status === 2) break;
-            if (result.status === 3) return reply("❌ AI Task failed.");
+        if (!q) {
+            return reply("❌ Please provide a movie name to search!\n\nExample: .movie From Season 4");
         }
 
-        if (result.status !== 2) return reply("❌ Polling timeout.");
+        await reply(`🔍 Searching for "${q}" on MLFBD...`);
 
-        // Send Result
-        await conn.sendMessage(m.chat, { 
-            image: { url: 'https://temp.live3d.io/' + result.result_image },
-            caption: `✨ *AI FACE SWAP SUCCESS*\n\nPrompt: ${q}` 
+        const response = await axios.get(searchApiUrl, {
+            params: { apikey: apiKey, text: q },
+            timeout: 30000
+        });
+
+        if (response.status !== 200 || !response.data?.result?.length) {
+            await react("❌");
+            return reply("❌ No results found on MLFBD for your query.");
+        }
+
+        const results = response.data.result;
+        let listText = `🎬 *MLFBD MOVIE SEARCH*\n\n🔎 *Query:* ${q.toUpperCase()}\n\n`;
+        results.forEach((v, i) => {
+            listText += `*${i + 1}* ☛ ${v.title} \n⭐ Rating: [${v.rate || 'N/A'}] | Year: [${v.year || 'N/A'}]\n\n`;
+        });
+        listText += `*🔢 Reply with a number to select your choice*\n\n> © KAMRAN-MINI-BOT ッ`;
+
+        const sentSearch = await client.sendMessage(from, {
+            image: { url: results[0].image || "https://placehold.co/600x400?text=No+Poster" },
+            caption: listText
         }, { quoted: mek });
+
+        const searchMsgId = sentSearch.key.id;
+        let detailsTimeout;
+
+        const detailsHandler = async (update) => {
+            const msg = update.messages[0];
+            if (!msg?.message || msg.key.remoteJid !== from) return;
+
+            const ctx = msg.message.extendedTextMessage?.contextInfo || msg.message.conversation?.contextInfo;
+            if (ctx?.stanzaId !== searchMsgId) return;
+
+            const choice = (msg.message.conversation || msg.message.extendedTextMessage?.text || "").trim();
+            const num = parseInt(choice);
+            if (isNaN(num) || num < 1 || num > results.length) return;
+
+            client.ev.off("messages.upsert", detailsHandler);
+            clearTimeout(detailsTimeout);
+
+            await react("⏳");
+            const selected = results[num - 1];
+            const detailResponse = await axios.get(downloadApiUrl, {
+                params: { apikey: apiKey, url: selected.link },
+                timeout: 30000
+            });
+
+            if (!detailResponse.data?.result) return reply("❌ Failed to pull details.");
+
+            const movieDetails = detailResponse.data.result;
+            const dlLinks = movieDetails.downloads || [];
+            let cap = `🎬 *${movieDetails.title}*\n\nℹ️ *Description:* ${movieDetails.description || 'N/A'}\n\n`;
+            dlLinks.forEach((dl, i) => {
+                cap += `*${i + 1}* ☛ Mirror ${i + 1} - Quality: [${dl.quality || '720p'}]\n`;
+            });
+            cap += `\n*🔢 Reply a number to begin download*\n\n> © KAMRAN-MINI-BOT ッ`;
+
+            const sentDetail = await client.sendMessage(from, {
+                image: { url: movieDetails.image || selected.image },
+                caption: cap
+            }, { quoted: msg });
+
+            const detailMsgId = sentDetail.key.id;
+
+            const downloadHandler = async (up) => {
+                const dlMsg = up.messages[0];
+                if (dlMsg?.key.remoteJid !== from || dlMsg.message.extendedTextMessage?.contextInfo?.stanzaId !== detailMsgId) return;
+
+                const dlNum = parseInt((dlMsg.message.conversation || dlMsg.message.extendedTextMessage?.text || "").trim());
+                if (isNaN(dlNum) || dlNum < 1 || dlNum > dlLinks.length) return;
+
+                client.ev.off("messages.upsert", downloadHandler);
+                await client.sendMessage(from, { react: { text: "📥", key: dlMsg.key } });
+
+                await client.sendMessage(from, {
+                    document: { url: dlLinks[dlNum - 1].direct },
+                    mimetype: "video/mp4",
+                    fileName: `${movieDetails.title.replace(/[^a-zA-Z0-9 ]/g, "_")}.mp4`,
+                    jpegThumbnail: await getThumbnailBuffer(movieDetails.image),
+                    caption: `✅ Downloaded: ${movieDetails.title}`
+                }, { quoted: dlMsg });
+            };
+
+            client.ev.on("messages.upsert", downloadHandler);
+        };
+
+        client.ev.on("messages.upsert", detailsHandler);
+        detailsTimeout = setTimeout(() => client.ev.off("messages.upsert", detailsHandler), 300000);
 
     } catch (e) {
         console.error(e);
+        await react("❌");
         reply("❌ Error: " + e.message);
     }
 });
