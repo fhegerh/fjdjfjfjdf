@@ -39,7 +39,7 @@ async function getThumbnailBuffer(url) {
 
 cmd({
     pattern: "moviebox",
-    alias: ["mbox", "movieboxdl"],
+    alias: ["mbox", "movie"],
     category: "downloader",
     desc: "Search and download movies/series from MovieBox via API",
     filename: __filename
