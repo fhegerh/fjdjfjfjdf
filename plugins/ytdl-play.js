@@ -12,9 +12,8 @@ cmd({
 async (conn, mek, m, { from, args, reply }) => {
 
     try {
-
         if (!args[0]) {
-            return reply("❌ Song likho\nExample: .play faded");
+            return reply("✨ *Please provide a song name!*\n*Example:* `.play faded`");
         }
 
         let query = encodeURIComponent(args.join(" "));
@@ -23,38 +22,30 @@ async (conn, mek, m, { from, args, reply }) => {
         let { data } = await axios.get(api, { timeout: 15000 });
 
         if (!data?.status) {
-            return reply("❌ Song not found");
+            return reply("❌ *Song not found. Please check your spelling.*");
         }
 
         const result = data.result;
-
         if (!result?.download?.audio) {
-            return reply("❌ Audio not found");
+            return reply("❌ *Failed to retrieve audio stream.*");
         }
 
-        let title = result.title;
-        let channel = result.channel;
-        let duration = result.duration;
-        let thumb = result.thumbnail;
-        let audioUrl = result.download.audio;
-
-        // ⭐ ONLY STYLE CHANGE (STAR DECORATION)
+        // Stylish Caption
         let text = `
-✦✦✦✦✦✦✦✦✦✦
-DR KAMRAN
-✦✦✦✦✦✦✦✦✦✦
+╔══════════════════════
+║ 🎧 *DR KAMRAN - MUSIC*
+╚══════════════════════
+┃ 🎶 *Title:* ${result.title}
+┃ 👤 *Channel:* ${result.channel}
+┃ ⏱ *Duration:* ${result.duration}
+╚══════════════════════
 
-🎶 ${title}
-👤 ${channel}
-⏱ ${duration}
-
-━━━━━━━━━━━━━━
-⚡ Processing Audio...
-🚀 Sending Now
+*⚡ Processing Audio...*
+*🚀 Sending now, stay tuned!*
 `.trim();
 
         await conn.sendMessage(from, {
-            image: { url: thumb },
+            image: { url: result.thumbnail },
             caption: text,
             contextInfo: {
                 isForwarded: true,
@@ -68,7 +59,7 @@ DR KAMRAN
         }, { quoted: mek });
 
         await conn.sendMessage(from, {
-            audio: { url: audioUrl },
+            audio: { url: result.download.audio },
             mimetype: "audio/mp4",
             ptt: false,
             contextInfo: {
@@ -83,8 +74,7 @@ DR KAMRAN
         }, { quoted: mek });
 
     } catch (e) {
-        console.log(e);
-        reply("❌ Error in play command");
+        console.error(e);
+        reply("❌ *An error occurred while processing your request.*");
     }
-
 });
