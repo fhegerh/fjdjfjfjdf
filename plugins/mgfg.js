@@ -28,7 +28,7 @@ cmd({
     const { reply, react, q, socket, sock, conn, from, mek } = context;
     const client = socket || sock || conn;
 
-    const apiKey = "vajira-23ikssig51-1780651873767";
+    const apiKey = "vajira-VajiraOfficial2003";
     const searchApiUrl = `https://vajira-official-apis.vercel.app/api/mlfbds`;
     const downloadApiUrl = `https://vajira-official-apis.vercel.app/api/mlfbddl`;
 
