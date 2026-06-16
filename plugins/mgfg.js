@@ -3,14 +3,19 @@ const yts = require("yt-search");
 const axios = require("axios");
 
 cmd({
-    pattern: "play5",
-    alias: ["play4"],
+    pattern: "play",
+    alias: ["playmusic"],
     desc: "Memutar musik dari YouTube",
     category: "downloader",
     filename: __filename
-}, async (m, { sock, text, reply, example }) => {
+}, async (m, { sock, text, example }) => {
     
-    if (!text) return reply(example('dj tiktok viral'));
+    // Manual reply function definition agar 'reply' function nahi mil raha
+    const reply = async (teks) => {
+        return await sock.sendMessage(m.chat, { text: teks }, { quoted: m });
+    };
+
+    if (!text) return await reply('Contoh penggunaan: .play dj tiktok viral');
 
     await reply('⏳ Sedang mencari lagu...');
 
@@ -18,14 +23,14 @@ cmd({
         const search = await yts(text);
         const video = search.videos[0];
 
-        if (!video) return reply('Lagu tidak ditemukan.');
+        if (!video) return await reply('Lagu tidak ditemukan.');
 
         const api = `https://api.mifinfinity.my.id/api/downloader/youtube?url=${encodeURIComponent(video.url)}&type=audio`;
 
         const { data } = await axios.get(api);
 
         if (!data.status || !data.result?.download) {
-            return reply('Gagal mengambil audio.');
+            return await reply('Gagal mengambil audio.');
         }
 
         const res = data.result;
@@ -50,7 +55,7 @@ cmd({
         }, { quoted: m });
 
     } catch (e) {
-        console.log(e);
-        reply('Terjadi kesalahan saat mendownload audio.');
+        console.error(e);
+        await reply('Terjadi kesalahan saat mendownload audio.');
     }
 });
