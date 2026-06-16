@@ -3,8 +3,8 @@ const yts = require("yt-search");
 const axios = require("axios");
 
 cmd({
-    pattern: "play",
-    alias: ["playmusic"],
+    pattern: "play4",
+    alias: ["play5"],
     desc: "Memutar musik dari YouTube",
     category: "downloader",
     filename: __filename
