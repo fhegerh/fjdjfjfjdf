@@ -3,19 +3,27 @@ const yts = require("yt-search");
 const axios = require("axios");
 
 cmd({
-    pattern: "play4",
+    pattern: "play",
     alias: ["playmusic"],
     desc: "Memutar musik dari YouTube",
     category: "downloader",
     filename: __filename
-}, async (m, { sock, text, example }) => {
+}, async (conn, m, { text, example }) => { // Yahan maine conn ko alag parameter banaya hai
     
-    // Manual reply function definition agar 'reply' function nahi mil raha
+    // Agar 'conn' undefined hai, toh 'm.client' ya 'm._client' use karein
+    const sock = conn || m.client || m._client;
+
+    if (!sock) {
+        console.log("Error: Socket/Client nahi mil raha.");
+        return;
+    }
+
+    // Manual reply function
     const reply = async (teks) => {
         return await sock.sendMessage(m.chat, { text: teks }, { quoted: m });
     };
 
-    if (!text) return await reply('Contoh penggunaan: .play dj tiktok viral');
+    if (!text) return await reply('Contoh: .play dj tiktok viral');
 
     await reply('⏳ Sedang mencari lagu...');
 
@@ -35,16 +43,10 @@ cmd({
 
         const res = data.result;
 
-        let caption = `乂 *Y O U T U B E - P L A Y*\n\n`;
-        caption += `◦ *Title* : ${res.title}\n`;
-        caption += `◦ *Channel* : ${res.channel}\n`;
-        caption += `◦ *Duration* : ${res.duration}\n`;
-        caption += `◦ *Views* : ${res.views}\n`;
-        caption += `◦ *Size* : ${res.size}\n`;
-
+        // Message bhejte waqt direct 'sock' use karein
         await sock.sendMessage(m.chat, {
             image: { url: res.thumbnail },
-            caption
+            caption: `乂 *Y O U T U B E - P L A Y*\n\n◦ *Title* : ${res.title}\n◦ *Channel* : ${res.channel}\n◦ *Duration* : ${res.duration}\n`
         }, { quoted: m });
 
         await sock.sendMessage(m.chat, {
@@ -56,6 +58,6 @@ cmd({
 
     } catch (e) {
         console.error(e);
-        await reply('Terjadi kesalahan saat mendownload audio.');
+        await reply('Terjadi kesalahan.');
     }
 });
