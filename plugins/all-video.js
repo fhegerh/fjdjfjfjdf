@@ -2,45 +2,49 @@ const { cmd } = require("../command");
 const axios = require("axios");
 
 cmd({
-    pattern: "dl", // Command name
+    pattern: "dl",
     alias: ["download"],
-    desc: "Download media dari berbagai platform (IG, TikTok, FB, YT)",
+    desc: "Download media via AIO API",
     category: "downloader",
     filename: __filename
-}, async (conn, m, { text, reply }) => {
+}, async (conn, m, { text }) => {
     
-    if (!text) return reply('Harap masukkan link media yang ingin didownload.');
+    // 1. Fixing the 'reply' function error
+    // Hum 'm.reply' ya direct 'conn.sendMessage' ka use karenge
+    const reply = async (teks) => {
+        return await conn.sendMessage(m.chat, { text: teks }, { quoted: m });
+    };
 
-    await reply('⏳ Sedang memproses link...');
+    if (!text) return reply('❌ Link ka link bhejen!\nContoh: .dl https://www.youtube.com/watch?v=...');
+
+    await reply('⏳ Sedang memproses media, mohon tunggu...');
 
     try {
-        // API URL for AIO Downloader
+        // 2. API Call
         const api = `https://api.mifinfinity.my.id/api/downloader/aio-v2?url=${encodeURIComponent(text)}`;
         const { data } = await axios.get(api);
 
         if (!data.status || !data.result) {
-            return reply('Gagal mengambil data. Pastikan link benar.');
+            return reply('❌ Gagal mengambil data. Pastikan link valid.');
         }
 
         const res = data.result;
 
-        // Mendeteksi jenis media (Video/Audio)
+        // 3. Sending the Media
         if (res.type === 'video') {
             await conn.sendMessage(m.chat, { 
                 video: { url: res.download }, 
-                caption: `乂 *A I O - D O W N L O A D E R*\n\n◦ *Title*: ${res.title || 'N/A'}` 
+                caption: `✅ *Download Berhasil*\n\n◦ Title: ${res.title}` 
             }, { quoted: m });
         } else if (res.type === 'audio') {
             await conn.sendMessage(m.chat, { 
                 audio: { url: res.download }, 
                 mimetype: 'audio/mpeg' 
             }, { quoted: m });
-        } else {
-            reply('Tipe media tidak didukung.');
         }
 
     } catch (e) {
         console.error(e);
-        reply('Terjadi kesalahan saat mendownload media.');
+        reply('❌ Terjadi kesalahan saat mendownload.');
     }
 });
