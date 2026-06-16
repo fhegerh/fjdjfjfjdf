@@ -1,106 +1,46 @@
-const { cmd } = require('../command');
-const axios = require('axios');
-const cheerio = require('cheerio');
+const { cmd } = require("../command");
+const axios = require("axios");
 
 cmd({
-    pattern: "jadwalbola",
-    alias: ["bola", "football", "sepakbola"],
-    desc: "Fetch live football match schedules from JadwalTV.",
-    category: "search",
+    pattern: "dl", // Command name
+    alias: ["download"],
+    desc: "Download media dari berbagai platform (IG, TikTok, FB, YT)",
+    category: "downloader",
     filename: __filename
-},
-async (conn, mek, m, { from, quoted, body, args, q, reply }) => {
+}, async (conn, m, { text, reply }) => {
+    
+    if (!text) return reply('Harap masukkan link media yang ingin didownload.');
+
+    await reply('⏳ Sedang memproses link...');
+
     try {
-        await reply("⏳ Fetching latest football match schedules, please wait...");
+        // API URL for AIO Downloader
+        const api = `https://api.mifinfinity.my.id/api/downloader/aio-v2?url=${encodeURIComponent(text)}`;
+        const { data } = await axios.get(api);
 
-        const baseUrl = 'https://www.jadwaltv.net';
-        const path = '/jadwal-sepakbola';
-
-        // Fetching HTML from JadwalTV website
-        const response = await axios.get(`${baseUrl}${path}`, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8'
-            },
-            timeout: 15000
-        });
-
-        const $ = cheerio.load(response.data);
-        const jadwal = [];
-        const seenKeys = new Set(); // To handle deduplication statelessly
-
-        // Parsing HTML table structure matching your script logic
-        $('table').each((tableIdx, table) => {
-            const rows = $(table).find('tr');
-
-            rows.each((rowIdx, row) => {
-                const cols = $(row).find('td');
-                
-                if (cols.length === 4) {
-                    const tanggal = $(cols[0]).text().trim();
-                    const jam = $(cols[1]).text().trim();
-                    const pertandingan = $(cols[2]).text().trim();
-                    const kompetisi = $(cols[3]).text().trim();
-
-                    if (tanggal && jam && pertandingan && kompetisi && !tanggal.includes('Tanggal')) {
-                        const key = `${tanggal}|${jam}|${pertandingan}`;
-                        
-                        if (!seenKeys.has(key)) {
-                            seenKeys.add(key);
-                            jadwal.push({
-                                tanggal,
-                                jam,
-                                pertandingan,
-                                kompetisi
-                            });
-                        }
-                    }
-                }
-            });
-        });
-
-        if (jadwal.length === 0) {
-            return reply("❌ Tidak dapat menemukan jadwal pertandingan. Mungkin struktur website berubah.");
+        if (!data.status || !data.result) {
+            return reply('Gagal mengambil data. Pastikan link benar.');
         }
 
-        // Grouping the matches by date for clean readability
-        const grouped = {};
-        jadwal.forEach(item => {
-            if (!grouped[item.tanggal]) grouped[item.tanggal] = [];
-            grouped[item.tanggal].push({
-                jam: item.jam,
-                pertandingan: item.pertandingan,
-                kompetisi: item.kompetisi
-            });
-        });
+        const res = data.result;
 
-        // Constructing beautiful text output for WhatsApp
-        let txt = `⚽ *JADWAL LIVE SEPAKBOLA TV* ⚽\n\n`;
-        txt += `📊 *Total Matches Found:* ${jadwal.length}\n`;
-        txt += `🌐 *Source:* jadwaltv.net (WIB)\n`;
-        txt += `───────────────────\n\n`;
+        // Mendeteksi jenis media (Video/Audio)
+        if (res.type === 'video') {
+            await conn.sendMessage(m.chat, { 
+                video: { url: res.download }, 
+                caption: `乂 *A I O - D O W N L O A D E R*\n\n◦ *Title*: ${res.title || 'N/A'}` 
+            }, { quoted: m });
+        } else if (res.type === 'audio') {
+            await conn.sendMessage(m.chat, { 
+                audio: { url: res.download }, 
+                mimetype: 'audio/mpeg' 
+            }, { quoted: m });
+        } else {
+            reply('Tipe media tidak didukung.');
+        }
 
-        // Showing maximum 5 dates to prevent text payload size limit on WhatsApp
-        const dates = Object.keys(grouped).slice(0, 5);
-
-        dates.forEach(tanggal => {
-            txt += `📅 *${tanggal.toUpperCase()}*\n`;
-            txt += `───────────────────\n`;
-
-            grouped[tanggal].forEach(match => {
-                txt += `⏰ *${match.jam}* - ${match.pertandingan}\n`;
-                txt += `🏆 _League: ${match.kompetisi}_\n\n`;
-            });
-            txt += `\n`;
-        });
-
-        txt += `*Powered by DR KAMRAN*`;
-
-        return await reply(txt);
-
-    } catch (error) {
-        console.error(error);
-        return reply(`❌ Error parsing football schedule: ${error.message}`);
+    } catch (e) {
+        console.error(e);
+        reply('Terjadi kesalahan saat mendownload media.');
     }
 });
-
