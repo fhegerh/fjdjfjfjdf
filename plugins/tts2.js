@@ -1,14 +1,3 @@
-/**
-  Plugins TikTok search 
-  Cari video dari tiktok <1>
-  
-  ** Creator: Jarr
-  ** Follow: https://whatsapp.com/channel/0029VbBoflt4dTnNWXV4zC09
-  ** Join grup: https://chat.whatsapp.com/L4ISxZ61fZG3CVjzUoNtzn?s=cl&p=a&mlu=0
-  
-  Jngn hps plis 🥺
-**/
-
 const { cmd } = require('../command');
 const axios = require('axios');
 
